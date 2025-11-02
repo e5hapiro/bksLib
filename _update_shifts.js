@@ -5,7 +5,7 @@
 * Shift Synchronization
 * -----------------------------------------------------------------
 * _sync_shifts.js
- * Version: 1.0.1
+ * Version: 1.0.0
  * Last updated: 2025-11-02
  * 
  * CHANGELOG v1.0.1:
