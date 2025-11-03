@@ -5,7 +5,7 @@
 * Event Updates
 * -----------------------------------------------------------------
 * _update_events.js
- * Version: 1.0.0
+ * Version: 1.0.1
 * Last updated: 2025-11-02
  * 
  * CHANGELOG v1.0.1:
