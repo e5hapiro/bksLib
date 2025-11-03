@@ -5,8 +5,7 @@
 * Common functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
 * -----------------------------------------------------------------
 * _common_functions.js
- * Version: 1.0.1
- * Last updated: 2025-10-30
+Version: 1.0.2 * Last updated: 2025-10-30
  * 
  * CHANGELOG v1.0.1:
  *   - Added enhanced error handling and logging to addToken.
