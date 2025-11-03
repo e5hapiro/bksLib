@@ -62,28 +62,23 @@ function updateShifts(sheetInputs, DEBUG) {
  */
 function getExistingShiftsMasterRows(sheet) {
   var data = sheet.getDataRange().getValues();
-  return data.slice(1); // skip headers
+  return data; // include headers
 }
 
 
 /**
- * Compares events with the existing master shifts table
- * and updates the shifts master with any missing shifts.
- * Should run periodically (e.g., every 10 minutes).
- * @param {Array<object>} events Array of event objects, each with parsed Date fields.
- * @param {Array<object>} shifts Array of shift master objects, as currently on the sheet.
- * @returns {void}
+ * Syncs events into the master sheet shifts list with proper key mapping.
  */
-function syncShiftsToMaster_(sheetInputs, DEBUG, events, shifts) {
+function syncShiftsToMaster_(sheetInputs, DEBUG, events, shiftsWithHeader) {
   var allNewShifts = [];
 
-  // ---- 1. Build Sets for Fast Comparison ----
-  // Set of current valid shift keys (from events)
-  var validShiftKeys = new Set();
-  // Set of existing in-sheet shift keys (for deduplication)
-  var existingShiftKeys = new Set();
+  var headers = shiftsWithHeader[0];           // Extract header row from sheet data
+  var shiftsData = shiftsWithHeader.slice(1);  // Shift data rows
 
-  // Helper: Standard key for uniqueness by deceased, location, start/end epoch
+  // Convert sheet rows to normalized objects with consistent keys
+  var shifts = shiftsData.map(row => rowToShiftObj(row, headers));
+
+  // Helper: Creates a unique key based on normalized shift object properties
   function getShiftKey(shift) {
     return [
       shift.deceasedName,
@@ -93,141 +88,110 @@ function syncShiftsToMaster_(sheetInputs, DEBUG, events, shifts) {
     ].join('|');
   }
 
-  // Existing shift keys
+  var validShiftKeys = new Set();
+  var existingShiftKeys = new Set();
+
   shifts.forEach(shift => existingShiftKeys.add(getShiftKey(shift)));
 
-  // All valid shifts according to current events
   var allCurrentEventShifts = [];
   events.forEach(event => {
-    var eventShifts = createHourlyShifts_(event, DEBUG); // 
+    var eventShifts = createHourlyShifts_(event, DEBUG);
     eventShifts.forEach(shift => {
       validShiftKeys.add(getShiftKey(shift));
       allCurrentEventShifts.push(shift);
-      // New shifts: any valid event shift not in sheet yet
       if (!existingShiftKeys.has(getShiftKey(shift))) {
         allNewShifts.push(shift);
       }
     });
   });
 
-  // ---- 2. Remove Obsolete Shifts ----
-  // Find rows in the master not present in the validShiftKeys
   var rowsToDelete = [];
   shifts.forEach((shift, idx) => {
     var key = getShiftKey(shift);
     if (!validShiftKeys.has(key)) {
-      rowsToDelete.push(idx + 2); // +2, as Sheets are 1-based and skip header row
+      rowsToDelete.push(idx + 2); // Account for header + 1-based indexing
     }
   });
 
-  // Remove obsolete rows, starting from the bottom to avoid row index shifts
   if (rowsToDelete.length > 0) {
     const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
     const sheet = ss.getSheetByName(sheetInputs.SHIFTS_MASTER_SHEET);
-    // Sort descending to not disrupt row numbers when deleting
-    rowsToDelete.sort(function(a, b) { return b - a; }); 
-    rowsToDelete.forEach(function(rowNum) {
-      sheet.deleteRow(rowNum);
-    });
+
+    rowsToDelete.sort((a, b) => b - a);
+
+    // Prevent deleting all data rows, leave at least one after header
+    while (sheet.getLastRow() - rowsToDelete.length < 2 && rowsToDelete.length > 0) {
+      rowsToDelete.pop();
+    }
+
+    rowsToDelete.forEach(rowNum => sheet.deleteRow(rowNum));
   }
 
-  // ---- 3. Add Any New Shifts ----
   if (allNewShifts.length > 0) {
     syncShiftsToSheet(sheetInputs, DEBUG, allNewShifts);
   }
 }
 
 
-
-
 /**
  * Creates individual hourly shift objects from a start and end time.
- * Shifts have a max capacity of 1.
  * @param {object} eventData The event data object containing all form inputs and parsed Date objects.
  * @returns {Array<object>} An array of structured shift objects.
  * @private
  */
 function createHourlyShifts_(eventData, DEBUG=false) {
- 
-     // --- DEBUG: Log entire eventData object ---
-    QA_Logging("=== Creating Shifts ===", DEBUG);
-    QA_Logging("=== FULL eventData OBJECT ===", DEBUG);
-    QA_Logging(JSON.stringify(eventData, null, 2), DEBUG);
-    QA_Logging("=== END eventData ===", DEBUG);
- 
- 
-  // Validate required fields
-  if (!eventData || 
-      !eventData.startDate || 
-      !eventData.endDate || 
-      !eventData.deceasedName || 
-      !eventData.locationName) {
+  QA_Logging("=== Creating Shifts ===", DEBUG);
+  QA_Logging("=== FULL eventData OBJECT ===", DEBUG);
+  QA_Logging(JSON.stringify(eventData, null, 2), DEBUG);
+  QA_Logging("=== END eventData ===", DEBUG);
+
+  if (!eventData || !eventData.startDate || !eventData.endDate || !eventData.deceasedName || !eventData.locationName) {
     QA_Logging('Error: Missing required event data fields', DEBUG);
     return [];
   }
-  
+
   const shifts = [];
-  
-  // Create copies of the Date objects for iteration
   let currentStart = new Date(eventData.startDate.getTime());
   const endDate = new Date(eventData.endDate.getTime());
-  
-  // Edge case check
+
   if (currentStart >= endDate) {
     QA_Logging('Warning: Start date is not before end date. No shifts created.', DEBUG);
     return shifts;
   }
 
-  // Create hourly shifts
   while (currentStart < endDate) {
     let currentEnd = new Date(currentStart.getTime());
     currentEnd.setHours(currentStart.getHours() + 1);
 
-    // Cap at endDate if we exceed it
     if (currentEnd > endDate) {
-      currentEnd = new Date(endDate.getTime()); 
+      currentEnd = new Date(endDate.getTime());
     }
     
-    // Format for display
-    const dateStr = currentStart.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-    const timeStr = `${currentStart.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit' 
-    })} - ${currentEnd.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit' 
-    })}`;
+    const dateStr = currentStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = `${currentStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${currentEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
 
-    // Generate a unique ID
-    const shiftId = Utilities.getUuid(); 
+    const shiftId = Utilities.getUuid();
 
     shifts.push({
       id: shiftId,
       deceasedName: eventData.deceasedName,
-      eventLocation: eventData.locationName, 
+      eventLocation: eventData.locationName,
       eventDate: dateStr,
       shiftTime: timeStr,
       maxVolunteers: 1,
-      currentVolunteers: 0,      
+      currentVolunteers: 0,
       startTimeEpoch: currentStart.getTime(),
-      endTimeEpoch: currentEnd.getTime(), 
+      endTimeEpoch: currentEnd.getTime(),
       pronoun: eventData.pronoun,
       metOrMeita: eventData.metOrMeita,
       personalInfo: eventData.personalInfo
     });
 
-    // Move to next hour (the while condition handles exit)
     currentStart = new Date(currentEnd.getTime());
   }
-  
+
   return shifts;
 }
-
-
 
 
 
@@ -293,5 +257,33 @@ function syncShiftsToSheet(sheetInputs, DEBUG, allNewShifts) {
   }
 }
 
+
+// Mapping from sheet header names to createHourlyShifts_ object keys
+const headerToObjectKey = {
+  "Shift ID": "id",
+  "Deceased Name": "deceasedName",
+  "Location": "eventLocation",
+  "Event Date": "eventDate",
+  "Shift Time": "shiftTime",
+  "Max Volunteers": "maxVolunteers",
+  "Current Volunteers": "currentVolunteers",
+  "Start Epoch": "startTimeEpoch",
+  "End Epoch": "endTimeEpoch",
+  "Pronoun": "pronoun",
+  "Met-or-Meita": "metOrMeita",
+  "Personal Information": "personalInfo"
+};
+
+/**
+ * Converts a sheet row array to a standardized shift object using header mapping
+ */
+function rowToShiftObj(row, headers) {
+  var obj = {};
+  headers.forEach(function(header, i) {
+    var key = headerToObjectKey[header];
+    if (key) obj[key] = row[i];
+  });
+  return obj;
+}
 
 

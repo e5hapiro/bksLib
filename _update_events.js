@@ -28,7 +28,7 @@
  * Sends emails to guests and members who have not yet received an email.
  * @private
  */
-function updateEventMap(sheetInputs, DEBUG) {
+function updateEventMap(sheetInputs, addressConfig, webAppUrl, DEBUG) {
   if (DEBUG) {
     QA_Logging('updateEventMap is called at ' + new Date().toISOString());
     QA_Logging('Spreadsheet ID: ' + sheetInputs.SPREADSHEET_ID);
@@ -72,7 +72,7 @@ function updateEventMap(sheetInputs, DEBUG) {
   existingMapRows = getExistingMapRows(mapSheet);
 
   // Now send a mail for any guests and events that have not already been sent the mail
-  mailMappings(sheetInputs, DEBUG, events, guests, members, existingMapRows);
+  mailMappings(sheetInputs, DEBUG, events, guests, members, existingMapRows, addressConfig, webAppUrl);
 
 }
 

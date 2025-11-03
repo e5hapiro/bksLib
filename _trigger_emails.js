@@ -25,7 +25,7 @@
  * @param {Array<object>} members - The members data.
  * @param {Array<object>} existingMapRows - The existing map rows.
  */
-function mailMappings(sheetInputs, DEBUG, events, guests, members, existingMapRows) {
+function mailMappings(sheetInputs, DEBUG, events, guests, members, existingMapRows, addressConfig, webAppUrl) {
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
   const mapSheet = ss.getSheetByName(sheetInputs.EVENT_MAP);
 
@@ -47,12 +47,31 @@ function mailMappings(sheetInputs, DEBUG, events, guests, members, existingMapRo
         return;
       }
 
+
+      /**
+       * Looks up the confidential physical address based on the location name (e.g., 'Site A').
+       * This function retrieves the secret address stored in ADDRESS_CONFIG.
+       * @param {string} locationName The short name (e.g., 'Site A' or 'Site B').
+       * @returns {string} The full physical address or a helpful message.
+       * @private
+       */
+      function getAddressFromLocationName_(addressConfig, locationName) {
+        
+        // Use the locationName to look up the confidential address.
+        if (addressConfig[locationName]) {
+          return addressConfig[locationName];
+        }
+        
+        // If the location is not configured (e.g., 'Virtual Shift', 'Other'), return the name.
+        return locationName; 
+      }
+
+
       // Use person's first and last name for greeting
       const subject = `Baruch Dayan Ha-Emet - Death of ${event.deceasedName} - Chevra Kadisha Services Needed`;
-      const fullAddress = getAddressFromLocationName_(event.locationName);
+      const fullAddress = getAddressFromLocationName_(addressConfig, event.locationName);
 
       // Generate URL for email
-      const webAppUrl = ScriptApp.getService().getUrl(); 
       var urlParam = isGuest ? "g" : "m";
       var personalizedUrl = `${webAppUrl}?${urlParam}=${person.token}`;
       

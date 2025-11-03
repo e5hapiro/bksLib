@@ -34,13 +34,15 @@ function updateShiftsAndEventMap() {
   const scriptProperties = PropertiesService.getScriptProperties();
   if (!scriptProperties) throw new Error('Script properties not found');
   const DEBUG = scriptProperties.getProperty('DEBUG') === 'true';
-  const addressConfig = JSON.parse(scriptProperties.getProperty('ADDRESS_CONFIG'));
+  const webAppUrl = scriptProperties.getProperty('SCRIPT_URL'); 
+  const addressConfig = JSON.parse(scriptProperties.getProperty('ADDRESS_CONFIG'));  
   const SPREADSHEET_ID = scriptProperties.getProperty('SPREADSHEET_ID');
   const sheetInputs = JSON.parse(scriptProperties.getProperty('SHEET_INPUTS'));
-  
+
+
   // Now use these variables in your function logic
   QA_Logging('triggeredFunction is called at ' + new Date().toISOString(), DEBUG);
   QA_Logging('Spreadsheet ID: ' + sheetInputs.SPREADSHEET_ID, DEBUG);
   updateShifts(sheetInputs, DEBUG);
-  updateEventMap(sheetInputs, DEBUG);
+  updateEventMap(sheetInputs,addressConfig,webAppUrl, DEBUG);
 }
