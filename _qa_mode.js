@@ -12,12 +12,13 @@ function QA_bootstrap() {
 
 // Harness wrappers
 /**
- * Show the About dialog using the given spreadsheet (QA-friendly).
+ * Trigger Updates.
  * @param {string|Spreadsheet} spreadsheetUrlOrId
  */
 function QA_triggerUpdates(spreadsheetUrlOrId) {
   updateShiftsAndEventMap();
 }
+
 
 /**
  * Return a Spreadsheet instance by url or id (required).
@@ -48,7 +49,7 @@ function QA_setScriptProperties() {
 
 
   const sheetInputs = {
-    SPREADSHEET_ID: '1cCouQRRpEN0nUhN45m14_z3oaONo7HHgwyfYDkcu2mw',
+    SPREADSHEET_ID: '1nf3Gy66U2MeYFDPilDA8YAX-Xk6ooYqLFRqCjsdP-gE',
     EVENT_FORM_RESPONSES: 'Form Responses 1',
     SHIFTS_MASTER_SHEET: 'Shifts Master',
     GUESTS_SHEET: 'Guests',

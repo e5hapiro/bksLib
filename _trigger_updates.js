@@ -29,14 +29,14 @@ Version: 1.0.2* Last updated: 2025-11-02
  * @returns {void}
  */
 
-function updateShiftsAndEventMap() {
-  const scriptProperties = PropertiesService.getScriptProperties();
-  if (!scriptProperties) throw new Error('Script properties not found');
-  const DEBUG = scriptProperties.getProperty('DEBUG') === 'true';
-  const webAppUrl = scriptProperties.getProperty('SCRIPT_URL'); 
-  const addressConfig = JSON.parse(scriptProperties.getProperty('ADDRESS_CONFIG'));  
-  const SPREADSHEET_ID = scriptProperties.getProperty('SPREADSHEET_ID');
-  const sheetInputs = JSON.parse(scriptProperties.getProperty('SHEET_INPUTS'));
+function updateShiftsAndEventMap(sheetInputs) {
+
+  console.log("got here 1");
+  console.log(sheetInputs);
+
+  const DEBUG = sheetInputs.DEBUG;
+  const webAppUrl = sheetInputs.SCRIPT_URL; 
+  const addressConfig = sheetInputs.ADDRESS_CONFIG;  
 
 
   // Now use these variables in your function logic
