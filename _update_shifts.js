@@ -5,12 +5,14 @@
 * Shift Synchronization
 * -----------------------------------------------------------------
 * _sync_shifts.js
-Version: 1.0.2 * Last updated: 2025-11-02
+Version: 1.0.6 * Last updated: 2025-11-12
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of createHourlyShifts_.
  *   - Added logging and error handling.
  *   - Added shift synchronization to the Shifts Master sheet.
+ * v1.0.6
+ *   - Fixed bug in usage of DEBUG
  * Shift Synchronization
  * -----------------------------------------------------------------
  */
@@ -20,7 +22,7 @@ Version: 1.0.2 * Last updated: 2025-11-02
  * @returns {void}
  * @returns {Array<object>} An array of structured shift objects.
  */
-function updateShifts(sheetInputs, DEBUG) {
+function updateShifts(sheetInputs) {
 
   var shifts = []; 
   var events = [];
@@ -41,11 +43,11 @@ function updateShifts(sheetInputs, DEBUG) {
     if (!shiftsMasterSheet) throw new Error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
     var shifts = getExistingShiftsMasterRows(shiftsMasterSheet);
 
-    syncShiftsToMaster_(sheetInputs, DEBUG, events, shifts);
+    syncShiftsToMaster_(sheetInputs, events, shifts);
 
 
   } catch (error) {
-    QA_Logging("Error in updateShifts_: " + error.toString(), DEBUG);
+    QA_Logging("Error in updateShifts_: " + error.toString(), sheetInputs.DEBUG);
     throw error;
   }
 
@@ -68,7 +70,7 @@ function getExistingShiftsMasterRows(sheet) {
 /**
  * Syncs events into the master sheet shifts list with proper key mapping.
  */
-function syncShiftsToMaster_(sheetInputs, DEBUG, events, shiftsWithHeader) {
+function syncShiftsToMaster_(sheetInputs, events, shiftsWithHeader) {
   var allNewShifts = [];
 
   var headers = shiftsWithHeader[0];           // Extract header row from sheet data
@@ -94,7 +96,7 @@ function syncShiftsToMaster_(sheetInputs, DEBUG, events, shiftsWithHeader) {
 
   var allCurrentEventShifts = [];
   events.forEach(event => {
-    var eventShifts = createHourlyShifts_(event, DEBUG);
+    var eventShifts = createHourlyShifts_(sheetInputs,event);
     eventShifts.forEach(shift => {
       validShiftKeys.add(getShiftKey(shift));
       allCurrentEventShifts.push(shift);
@@ -127,7 +129,7 @@ function syncShiftsToMaster_(sheetInputs, DEBUG, events, shiftsWithHeader) {
   }
 
   if (allNewShifts.length > 0) {
-    syncShiftsToSheet(sheetInputs, DEBUG, allNewShifts);
+    syncShiftsToSheet(sheetInputs, allNewShifts);
   }
 }
 
@@ -138,14 +140,14 @@ function syncShiftsToMaster_(sheetInputs, DEBUG, events, shiftsWithHeader) {
  * @returns {Array<object>} An array of structured shift objects.
  * @private
  */
-function createHourlyShifts_(eventData, DEBUG=false) {
-  QA_Logging("=== Creating Shifts ===", DEBUG);
-  QA_Logging("=== FULL eventData OBJECT ===", DEBUG);
-  QA_Logging(JSON.stringify(eventData, null, 2), DEBUG);
-  QA_Logging("=== END eventData ===", DEBUG);
+function createHourlyShifts_(sheetInputs, eventData) {
+  QA_Logging("=== Creating Shifts ===", sheetInputs.DEBUG);
+  QA_Logging("=== FULL eventData OBJECT ===", sheetInputs.DEBUG);
+  QA_Logging(JSON.stringify(eventData, null, 2), sheetInputs.DEBUG);
+  QA_Logging("=== END eventData ===", sheetInputs.DEBUG);
 
   if (!eventData || !eventData.startDate || !eventData.endDate || !eventData.deceasedName || !eventData.locationName) {
-    QA_Logging('Error: Missing required event data fields', DEBUG);
+    QA_Logging('Error: Missing required event data fields', sheetInputs.DEBUG);
     return [];
   }
 
@@ -154,7 +156,7 @@ function createHourlyShifts_(eventData, DEBUG=false) {
   const endDate = new Date(eventData.endDate.getTime());
 
   if (currentStart >= endDate) {
-    QA_Logging('Warning: Start date is not before end date. No shifts created.', DEBUG);
+    QA_Logging('Warning: Start date is not before end date. No shifts created.', sheetInputs.DEBUG);
     return shifts;
   }
 
@@ -205,7 +207,7 @@ function createHourlyShifts_(eventData, DEBUG=false) {
  * @param {Array<object>} allNewShifts Array of shift objects.
  * @private
  */
-function syncShiftsToSheet(sheetInputs, DEBUG, allNewShifts) {
+function syncShiftsToSheet(sheetInputs, allNewShifts) {
   try {
     const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
     const sheet = ss.getSheetByName(sheetInputs.SHIFTS_MASTER_SHEET);
@@ -254,7 +256,7 @@ function syncShiftsToSheet(sheetInputs, DEBUG, allNewShifts) {
     }
     
   } catch (error) {
-    QA_Logging("Error in syncShiftsToSheet: " + error.toString(), DEBUG);
+    QA_Logging("Error in syncShiftsToSheet: " + error.toString(), sheetInputs.DEBUG);
     throw error;
   }
 }

@@ -4,10 +4,12 @@
 * Chevra Kadisha Selection Form Handler
 * -----------------------------------------------------------------
 * _selection_form.js
-Version: 1.0.3 * Last updated: 2025-11-04
+Version: 1.0.6 * Last updated: 2025-11-12
  * 
  * CHANGELOG v1.0.3:
  *   - Initial implementation of Selection Form.
+ *   v1.0.6:
+ *   - Fixed bug in usage of DEBUG
  * -----------------------------------------------------------------
  */
 
@@ -25,8 +27,15 @@ const SHIFT_FLAGS = {
  * Server-side stub to get available shifts data for "Schedule Shifts" tab.
  */
 function getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly ) {
+    Logger.log("Getting getShifts " + volunteerToken);
+
   // Fetch and return available shifts data filtered or personalized as needed by volunteerToken
   // Example return format: Array of event objects with availableShifts arrays
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
 
   try {
 
@@ -40,7 +49,7 @@ function getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly )
 
       info = getMemberInfoByToken(sheetInputs, volunteerToken, shiftFlags, nameOnly);
 
-      //logQCVars_('Member info', info);
+      //logQCVars('Member info', info);
       if (info) {
 
         var fullName = info.firstName + " " + info.lastName;
@@ -76,7 +85,7 @@ function getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly )
         fullName = "Volunteer";      
       }
 
-      //logQCVars_('Guest info', info);
+      //logQCVars('Guest info', info);
       if (info) {
 
         var fullName = info.firstName + " " + info.lastName;
@@ -117,6 +126,12 @@ function getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly )
 
 function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
   Logger.log("Getting getMemberInfoByToken " + token);
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
+
 
   function getSafeValue(row, idx, header) {
     if (idx.hasOwnProperty(header)) {
@@ -201,7 +216,7 @@ function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
           };
           */
 
-          //logQCVars_('getMemberInfoByToken_', info);
+          //logQCVars('getMemberInfoByToken_', info);
           return info;
         } // Closing else
       }
@@ -218,6 +233,11 @@ function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
 
 function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
   Logger.log("Getting getGuestInfoByToken[token]: " + token);
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
 
   function getSafeValue(row, idx, header) {
     if (idx.hasOwnProperty(header)) {
@@ -303,7 +323,7 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
           };
           */
 
-          //logQCVars_('getGuestInfoByToken', info);
+          //logQCVars('getGuestInfoByToken', info);
           return info;
         }
       }
@@ -321,6 +341,11 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
 // SHARED event look up for both guests and members
 function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {    // The master workbook
   Logger.log("Getting getEventsForToken_[guestOrMemberToken]: " + guestOrMemberToken);
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
 
   // FIELD NAMES TO NORMALIZE
   const dateFields = ["Start Date", "Start Time", "End Date", "End Time"];
@@ -395,13 +420,18 @@ function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {  
     }
   }
 
-  //logQCVars_("getEventsForToken_.events", events);
+  //logQCVars("getEventsForToken_.events", events);
 
   return events;
 }
 
 function getAvailableShiftsForEvent(sheetInputs, eventToken) {
   Logger.log("Getting getAvailableShiftsForEvent[eventToken]: " + eventToken);
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
 
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
@@ -445,7 +475,7 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken) {
 
   const availableShifts = eventShifts.filter(shift => !claimedShiftIds.has(shift[shiftsHeaders[shiftIdIdx]]));
 
-  //logQCVars_("AvailableShifts:", availableShifts);
+  //logQCVars("AvailableShifts:", availableShifts);
 
   // Return only shifts that are NOT already claimed
   return availableShifts;
@@ -453,6 +483,11 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken) {
 
 function getSelectedShiftsByToken(sheetInputs, eventToken, userToken) {
   Logger.log("Getting getSelectedShiftsByToken[eventToken]: " + eventToken);
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
 
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
@@ -503,8 +538,13 @@ function getSelectedShiftsByToken(sheetInputs, eventToken, userToken) {
 
 function getEventShifts(sheetInputs, eventToken) {
   Logger.log("Getting getEventShifts[eventToken]: " + eventToken);  
-  const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
+
+  const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
   const shiftsSheet = ss.getSheetByName(sheetInputs.SHIFTS_MASTER_SHEET);
   if (!shiftsSheet) throw new Error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
 
@@ -533,6 +573,12 @@ function getEventShifts(sheetInputs, eventToken) {
 
 function setVolunteerShifts(sheetInputs, selectedShiftIds, volunteerName, volunteerToken) {
   Logger.log("Getting setVolunteerShifts[volunteerToken]: " + volunteerToken);  
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
+
 
   Logger.log("setVolunteerShifts:");
   Logger.log("selectedShiftIds:");
@@ -600,6 +646,12 @@ function setVolunteerShifts(sheetInputs, selectedShiftIds, volunteerName, volunt
 function removeVolunteerShifts(sheetInputs, shiftIds, volunteerName, volunteerToken) {
   Logger.log("Getting removeVolunteerShifts[volunteerToken]: " + volunteerToken);  
 
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
+
+
   Logger.log("bckLib.setVolunteerShifts:");
   Logger.log("bckLib.shiftIds:");
   Logger.log(shiftIds);
@@ -643,101 +695,154 @@ function removeVolunteerShifts(sheetInputs, shiftIds, volunteerName, volunteerTo
   return true;
 }
 
-
 function sendShiftEmail(sheetInputs, volunteerData, shifts, actionType) {
-
   console.log("--- START sendShiftEmail ---");
-  console.log("volunteerData:" + JSON.stringify(volunteerData));
-  console.log("shifts (IDs):" + JSON.stringify(shifts));
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
+
+  function getAddressFromLocationName_(addressConfig, locationName) {
+    if (addressConfig[locationName]) {
+      return addressConfig[locationName];
+    }
+    return locationName; 
+  }
 
   const emailAction = actionType === "Addition" ? "added to" : "removed from";
-
   const urlParam = volunteerData.isMember ? "m" : "g";
   const sheetUrl = sheetInputs["SCRIPT_URL"];
   const personalizedUrl = `${sheetUrl}?${urlParam}=${volunteerData.token}`;
   const recipientEmail = volunteerData.email;
-  //      const info = bckLib.getMemberInfoByToken(sheetInputs, volunteerData.token, nameOnly);
+
   const nameOnly = false;
   const info = getMemberInfoByToken(sheetInputs, volunteerData.token, SHIFT_FLAGS.EVENT, nameOnly  );
 
   const events = info.events || [];
-  // Aggregate all available shifts from all events (since each event has an array of availableShifts)
   const allAvailableShifts = events.flatMap(event => {
-    return (event.eventShifts || []).map(shift => {
-      // Include event info in the shift for email detail composition
-      return {
-        ...shift,
-        eventLocation: event.Location,
-        deceasedName: event["Deceased Name"],
-        eventStartDate: event["Start Date"],
-        eventToken: event.Token || event["Token"] || event["Event Token"] || event.Token,
-      };
-    });
+    return (event.eventShifts || []).map(shift => ({
+      ...shift,
+      eventLocation: event.Location,
+      deceasedName: event["Deceased Name"],
+      eventStartDate: event["Start Date"],
+      eventToken: event.Token || event["Token"] || event["Event Token"] || event.Token,
+      eventId: event.Token || event["Token"] || event["Event Token"] || event.Token
+    }));
   });
 
-  // Filter to get details for only those shift IDs passed in the shifts array
+  // Filter to only selected shift IDs
   const matchedShiftDetails = allAvailableShifts.filter(shift => shifts.includes(shift["Shift ID"]));
 
-  if (matchedShiftDetails.length === 0) {
-    console.warn("No matching shift details found for provided shift IDs");
-  }
-
-  // Compose subject line based on matched shifts and using shift times or deceased names for clarity
-  const subjectPrefix = "Chevra Kadisha Volunteer: Confirmation of Shift " + actionType
-  const subjectSuffix = "at " + `${matchedShiftDetails.map(s => s["Location"]).join(', ')}`
-
-  const subject = `${subjectPrefix}: Shift${matchedShiftDetails.length > 1 ? 's' : ''} ${matchedShiftDetails.map(s => s["Shift Time"]).join(', ')} ${subjectSuffix}`;
-  console.log("subject: " + subject);
-
-  // Build the body with all matched shift details
-  let shiftDetails = '';
-  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-
+  // 1. GROUP SHIFTS BY EVENT
+  const groupedByEvent = {};
   matchedShiftDetails.forEach(shift => {
-    console.log("processing matched shift: " + JSON.stringify(shift));
-    const fullAddress = getAddressFromLocationName_(shift.eventLocation);
+    const eventKey = shift.eventId || shift.eventLocation || shift.deceasedName || "Unknown Event";
+    if (!groupedByEvent[eventKey]) {
+      groupedByEvent[eventKey] = {
+        eventLocation: shift.eventLocation,
+        deceasedName: shift.deceasedName,
+        eventStartDate: shift.eventStartDate,
+        shifts: []
+      }
+    }
+    groupedByEvent[eventKey].shifts.push(shift);
+  });
 
-    // Format the event date neatly (assumes eventStartDate as ISO string or date string)
-    //const eventDateFormatted = shift.eventStartDate ? new Date(shift.eventStartDate).toLocaleDateString() : 'Date Unknown';
-    let eventDateFormatted = 'Date Unknown';
-
-    if (shift.eventStartDate) {
-      const date = new Date(shift.eventStartDate);
+  // 2. BUILD BODY (GROUPED)
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  let shiftDetails = '';
+  let totalShifts = 0;
+  for (const eventKey in groupedByEvent) {
+    const event = groupedByEvent[eventKey];
+    let eventDateFormatted = "Date Unknown";
+    if (event.eventStartDate) {
+      const date = new Date(event.eventStartDate);
       if (!isNaN(date)) {
         eventDateFormatted = date.toLocaleDateString('en-US', options);
       }
     }
+    const fullAddress = getAddressFromLocationName_(sheetInputs.ADDRESS_CONFIG, event.eventLocation);
 
-    shiftDetails += `
-    - Deceased: ${shift.deceasedName || 'N/A'}
-    - Location: ${shift.eventLocation}
-    - Address: ${fullAddress}
-    - Date: ${eventDateFormatted}
-    - Time: ${shift["Shift Time"]}
-    `;
-  });
+    shiftDetails += `\nEvent: ${event.deceasedName || "N/A"}\nLocation: ${event.eventLocation}\nAddress: ${fullAddress}\nDate: ${eventDateFormatted}\nShifts:\n`;
+    event.shifts.forEach(shift => {
+      shiftDetails += `  - Time: ${shift["Shift Time"]}\n`;
+      totalShifts++;
+    });
+    shiftDetails += '\n';
+  }
 
-  const body = `
-    Dear ${volunteerData.name},
+  // 3. COMPOSE EMAIL BODY
+  let body = `
+Dear ${volunteerData.name},
 
-    This is an automatic confirmation that your request to be ${emailAction} the following shift${matchedShiftDetails.length > 1 ? 's' : ''} has been processed successfully:
+This is an automatic confirmation that your request to be ${emailAction} the following shift${totalShifts > 1 ? 's' : ''} has been processed successfully:
 
-    Shift Details:
-    ${shiftDetails}
+${shiftDetails}
 
-    If you need to cancel or change your confirmation, go to Your Volunteer Portal Link: ${personalizedUrl}. Remember, this link is unique to you. Please do not share it.
+If you need to cancel or change your confirmation, go to your portal link: ${personalizedUrl}.
 
-    Thank you for providing this mitzvah.
-  `;
+Thank you for providing this mitzvah.
+`;
 
-  console.log("body: " + body);
+  // 4. CHECK BODY SIZE; TRIM IF NECESSARY
+  const MAX_BODY = 20000; // Apps Script body limit is 20,000 chars
+  if (body.length > MAX_BODY) {
+    // Determine how many events/shifts fit
+    let partialBody = `
+Dear ${volunteerData.name},
+
+This is an automatic confirmation that your request to be ${emailAction} the following shift(s) has been processed successfully:
+
+`;
+    let omittedCount = 0;
+    for (const eventKey in groupedByEvent) {
+      if (partialBody.length > MAX_BODY - 500) { // Leave space for note and link
+        omittedCount += groupedByEvent[eventKey].shifts.length;
+        continue;
+      }
+      const event = groupedByEvent[eventKey];
+      let eventDateFormatted = "Date Unknown";
+      if (event.eventStartDate) {
+        const date = new Date(event.eventStartDate);
+        if (!isNaN(date)) {
+          eventDateFormatted = date.toLocaleDateString('en-US', options);
+        }
+      }
+      const fullAddress = getAddressFromLocationName_(sheetInputs.ADDRESS_CONFIG, event.eventLocation);
+      let eventHeader = `Event: ${event.deceasedName || "N/A"}\nLocation: ${event.eventLocation}\nAddress: ${fullAddress}\nDate: ${eventDateFormatted}\nShifts:\n`;
+      let eventShiftsLines = '';
+      event.shifts.forEach(shift => {
+        if ((partialBody.length + eventHeader.length + eventShiftsLines.length + 100) > MAX_BODY - 500) {
+          omittedCount++;
+          return;
+        }
+        eventShiftsLines += `  - Time: ${shift["Shift Time"]}\n`;
+      });
+      if (eventShiftsLines) {
+        partialBody += eventHeader + eventShiftsLines + '\n';
+      }
+    }
+    partialBody += (omittedCount > 0 ? `\n[Note: Some shifts were omitted from this message due to size constraints. All your sign-ups are recorded.]\n` : '');
+    partialBody += `\nIf you need to cancel or change your confirmation, go to your portal link: ${personalizedUrl}.\n\nThank you for providing this mitzvah.\n`;
+    body = partialBody;
+  }
+
+  // 5. SUBJECT
+  // For brevity: list first event, and maybe count of shifts
+  let subject = "Chevra Kadisha Volunteer: Confirmation of Shift " + actionType;
+  if (matchedShiftDetails.length === 1) {
+    subject += `: ${matchedShiftDetails[0]["Shift Time"]} at ${matchedShiftDetails[0].eventLocation}`;
+  } else if (matchedShiftDetails.length > 1) {
+    subject += `: ${matchedShiftDetails.length} shifts`;
+  }
+
+  if (!recipientEmail || !String(recipientEmail).includes('@')) {
+    Logger.log(`Skipping email: Invalid recipient email address: ${recipientEmail}`);
+    return;
+  }
 
   try {
-    if (!recipientEmail || !String(recipientEmail).includes('@')) {
-      Logger.log(`Skipping email: Invalid recipient email address: ${recipientEmail}`);
-      return;
-    }
-
     MailApp.sendEmail({
       to: recipientEmail,
       subject: subject,

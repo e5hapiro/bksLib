@@ -5,7 +5,9 @@
 * Import Spreadsheet
 * -----------------------------------------------------------------
 * _importSpreadsheet.js
-Version: 1.0.2* Last updated: 2025-11-02
+Version: 1.0.6* Last updated: 2025-11-12
+ *   CHANGELOG v1.0.6:
+ *   - Fixed bug in usage of DEBUG
  * -----------------------------------------------------------------
  */
   

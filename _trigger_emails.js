@@ -5,14 +5,16 @@
 * Trigger Emails
 * -----------------------------------------------------------------
 * _trigger_emails.js
-Version: 1.0.2* Last updated: 2025-11-02
+Version: 1.0.6* Last updated: 2025-11-12
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of mailMappings.
  *   - Added logging and error handling.
  *   - Added event, guest, and member data retrieval.
  *   - Added mapping synchronization.
- * Trigger Emails
+  *   v1.0.6:
+ *   - Fixed bug in usage of DEBUG
+* Trigger Emails
  * -----------------------------------------------------------------
  */
   
@@ -24,7 +26,13 @@ Version: 1.0.2* Last updated: 2025-11-02
  * @param {Array<object>} members - The members data.
  * @param {Array<object>} existingMapRows - The existing map rows.
  */
-function mailMappings(sheetInputs, DEBUG, events, guests, members, existingMapRows, addressConfig, webAppUrl) {
+function mailMappings(sheetInputs, events, guests, members, existingMapRows, addressConfig, webAppUrl) {
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+  console.log ("DEBUG is undefined");
+  return;
+}
+
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
   const mapSheet = ss.getSheetByName(sheetInputs.EVENT_MAP);
 
@@ -42,7 +50,7 @@ function mailMappings(sheetInputs, DEBUG, events, guests, members, existingMapRo
         : members.find(m => String(m.token).trim() === String(personId).trim());
 
       if (!event || !person) {
-        QA_Logging(`Skipping mapping (eventId: ${eventId}, personId: ${personId}) - not found.`, DEBUG);
+        QA_Logging(`Skipping mapping (eventId: ${eventId}, personId: ${personId}) - not found.`, true);
         return;
       }
 

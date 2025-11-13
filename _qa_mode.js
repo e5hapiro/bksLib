@@ -1,4 +1,18 @@
-
+/**
+* -----------------------------------------------------------------
+* _qa_mode.js
+* Chevra Kadisha Shifts Scheduler
+* QA mode utilized to debug the library
+* -----------------------------------------------------------------
+* _common_functions.js
+Version: 1.0.6 * Last updated: 2025-11-12
+ * 
+ * CHANGELOG v1.0.6:
+ *   - Fixed bug in usage of DEBUG
+ *
+ * Utility functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
+ * -----------------------------------------------------------------
+ */
 /**
  * Bootstrap runner for Apps Script IDE. Set constants below, then run QA_bootstrap.
  * It invokes the harness functions in a sensible order and logs outputs.
@@ -49,6 +63,8 @@ function QA_setScriptProperties() {
 
 
   const sheetInputs = {
+    DEBUG: 'true',
+    ADDRESS_CONFIG: addressConfig,
     SPREADSHEET_ID: '1nf3Gy66U2MeYFDPilDA8YAX-Xk6ooYqLFRqCjsdP-gE',
     EVENT_FORM_RESPONSES: 'Form Responses 1',
     SHIFTS_MASTER_SHEET: 'Shifts Master',
@@ -62,8 +78,11 @@ function QA_setScriptProperties() {
 
 function QA_Logging(logMessage, DEBUG=false) {
 
-  if (DEBUG) {
-    console.log(logMessage);
-  };
+  // --- QA CHECK ---
+  if (typeof DEBUG === 'undefined' || DEBUG === false) {
+    return;
+  }
+  
+  console.log(logMessage);
 
 }

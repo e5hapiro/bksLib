@@ -5,13 +5,15 @@
 * Common functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
 * -----------------------------------------------------------------
 * _common_functions.js
-Version: 1.0.2 * Last updated: 2025-10-30
+Version: 1.0.6 * Last updated: 2025-11-12
  * 
  * CHANGELOG v1.0.1:
  *   - Added enhanced error handling and logging to addToken.
  *   - Improved prevalidation and update detection logic in isFormUpdated.
- *   - Enhanced logging logic in logQCVars_.
+ *   - Enhanced logging logic in logQCVars.
  *   - Added formattedDateAndTime for consistent date formatting.
+ *   v1.0.6:
+ *   - Fixed bug in usage of DEBUG
  *
  * Utility functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
  * -----------------------------------------------------------------
@@ -74,7 +76,7 @@ function isFormUpdated(eventData) {
  * @param {string} context - A message describing where in the code this is being called.
  * @param {Object} varsObject - An object where keys are variable names and values are the variables.
  */
-function logQCVars_(context, varsObject) {
+function logQCVars(context, varsObject) {
   // --- QA CHECK ---
   if (typeof DEBUG === 'undefined' || DEBUG === false) {
     return;

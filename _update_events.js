@@ -5,13 +5,15 @@
 * Event Updates
 * -----------------------------------------------------------------
 * _update_events.js
-Version: 1.0.2* Last updated: 2025-11-02
+Version: 1.0.6 Last updated: 2025-11-12
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of updateEvents_.
  *   - Added logging and error handling.
  *   - Added event, guest, and member data retrieval.
  *   - Added mapping synchronization.
+ *   v1.0.6:
+ *   - Fixed bug in usage of DEBUG
  * Event Updates
  * -----------------------------------------------------------------
  */
@@ -27,8 +29,15 @@ Version: 1.0.2* Last updated: 2025-11-02
  * Sends emails to guests and members who have not yet received an email.
  * @private
  */
-function updateEventMap(sheetInputs, addressConfig, webAppUrl, DEBUG) {
-  if (DEBUG) {
+function updateEventMap(sheetInputs, addressConfig, webAppUrl) {
+
+  if (typeof sheetInputs.DEBUG === 'undefined') {
+    console.log ("DEBUG is undefined");
+    return;
+  }
+
+
+  if (sheetInputs.DEBUG) {
     QA_Logging('updateEventMap is called at ' + new Date().toISOString());
     QA_Logging('Spreadsheet ID: ' + sheetInputs.SPREADSHEET_ID);
     QA_Logging('Event Form Responses: ' + sheetInputs.EVENT_FORM_RESPONSES);
@@ -71,7 +80,7 @@ function updateEventMap(sheetInputs, addressConfig, webAppUrl, DEBUG) {
   existingMapRows = getExistingMapRows(mapSheet);
 
   // Now send a mail for any guests and events that have not already been sent the mail
-  mailMappings(sheetInputs, DEBUG, events, guests, members, existingMapRows, addressConfig, webAppUrl);
+  mailMappings(sheetInputs, events, guests, members, existingMapRows, addressConfig, webAppUrl);
 
 }
 
