@@ -63,6 +63,7 @@ function getLocations(sheetInputs) {
         zip:         getSafeValue(row, idx, 'Zip'),
         phone:       getSafeValue(row, idx, 'Phone'),
         mapUrl:      getSafeValue(row, idx, 'Map URL'),
+        notes:       getSafeValue(row, idx, 'Notes'),
         rowIndex:    i + 1 // 1-based row index in the sheet
       };
 
