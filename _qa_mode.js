@@ -1,0 +1,88 @@
+/**
+* -----------------------------------------------------------------
+* _qa_mode.js
+* Chevra Kadisha Shifts Scheduler
+* QA mode utilized to debug the library
+* -----------------------------------------------------------------
+* _common_functions.js
+Version: 1.0.6 * Last updated: 2025-11-12
+ * 
+ * CHANGELOG v1.0.6:
+ *   - Fixed bug in usage of DEBUG
+ *
+ * Utility functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
+ * -----------------------------------------------------------------
+ */
+/**
+ * Bootstrap runner for Apps Script IDE. Set constants below, then run QA_bootstrap.
+ * It invokes the harness functions in a sensible order and logs outputs.
+ */
+function QA_bootstrap() {
+
+  QA_setScriptProperties();
+  try { QA_triggerUpdates(); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
+
+}
+
+// Harness wrappers
+/**
+ * Trigger Updates.
+ * @param {string|Spreadsheet} spreadsheetUrlOrId
+ */
+function QA_triggerUpdates(spreadsheetUrlOrId) {
+  updateShiftsAndEventMap();
+}
+
+
+/**
+ * Return a Spreadsheet instance by url or id (required).
+ * Delegates to getQDSSpreadsheet for QA-friendly resolution.
+ * @param {string|Spreadsheet} spreadsheetUrlOrId URL, ID, or Spreadsheet object
+ * @returns {Spreadsheet}
+ * @example
+ * var ss = QA_getSpreadsheet('https://docs.google.com/spreadsheets/d/ID/edit');
+ */
+function QA_getSpreadsheet(spreadsheetUrlOrId) {
+  return getQDSSpreadsheet(spreadsheetUrlOrId);
+}
+
+function QA_setScriptProperties() {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  
+  scriptProperties.setProperty('DEBUG', 'true');
+  
+  const addressConfig = {
+    'Crist Mortuary': '3395 Penrose Pl, Boulder, CO 80301',
+    'Greenwood & Myers Mortuary': '2969 Baseline Road, Boulder, CO 80303'
+  };
+  scriptProperties.setProperty('ADDRESS_CONFIG', JSON.stringify(addressConfig));  
+
+  // Generate URL for email
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbxKxTyP7pmN1dspwuEUe1s-UVz4RwbADJiboj4G50w/dev"; 
+  scriptProperties.setProperty('SCRIPT_URL', webAppUrl);  
+
+
+  const sheetInputs = {
+    DEBUG: 'true',
+    ADDRESS_CONFIG: addressConfig,
+    SPREADSHEET_ID: '1nf3Gy66U2MeYFDPilDA8YAX-Xk6ooYqLFRqCjsdP-gE',
+    EVENT_FORM_RESPONSES: 'Form Responses 1',
+    SHIFTS_MASTER_SHEET: 'Shifts Master',
+    GUESTS_SHEET: 'Guests',
+    MEMBERS_SHEET: 'Members',
+    EVENT_MAP: 'Event Map',
+    ARCHIVE_EVENT_MAP: 'Archive Event Map'
+  };
+  scriptProperties.setProperty('SHEET_INPUTS', JSON.stringify(sheetInputs));
+}
+
+function QA_Logging(logMessage, DEBUG=false) {
+
+  // --- QA CHECK ---
+  if (typeof DEBUG === 'undefined' || DEBUG === false) {
+    return;
+  }
+  
+  console.log(logMessage);
+
+}
