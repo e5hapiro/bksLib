@@ -4,9 +4,9 @@
 * Chevra Kadisha Admin Menu functions
 * -----------------------------------------------------------------
 * _selection_form.js
-Version: 1.0.6 * Last updated: 2025-11-12
+Version: 1.0.7 * Last updated: 2025-11-12
  * 
- * CHANGELOG v1.0.6:
+ * CHANGELOG v1.0.7:
  *   - Initial implementation of Admin Menu.
  * -----------------------------------------------------------------
  */
@@ -17,10 +17,10 @@ function displayAbout() {
     var timeZone = Session.getScriptTimeZone();
 
     // Set the release date as a Date object and format it
-    var releaseDateObj = new Date('2025-11-12T00:00:00');
+    var releaseDateObj = new Date('2025-11-30T00:00:00');
     var qdsDate = Utilities.formatDate(releaseDateObj, timeZone, "dd MMMM yyyy, HH:mm");
 
-    var qdsVersion = "v.1.0.6";
+    var qdsVersion = "v.1.0.7";
     // Current date and time, formatted
     var now = new Date();
     var qdsCurrent = Utilities.formatDate(now, timeZone, "dd MMMM yyyy, HH:mm");

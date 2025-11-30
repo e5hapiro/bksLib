@@ -95,23 +95,24 @@ function mailMappings(sheetInputs, events, guests, members, locations, existingM
 
       // Compose body with all fields
       const body = `
-        Dear ${person.firstName} ${person.lastName},
+Dear ${person.firstName} ${person.lastName},
 
-        Baruch Dayan Ha'Emet. We sadly notify you of the death of ${event.deceasedName}.
+Baruch Dayan Ha'Emet. We sadly notify you of the death of ${event.deceasedName}.
 
-        ${event.pronoun} ${event.metOrMeita} is at ${event.locationName} (Address: ${fullAddress}).
+${event.pronoun} ${event.metOrMeita} is at ${event.locationName} (Address: ${fullAddress}).
 
-        Shmira will start on ${startDateTimeStr} and is scheduled to end for the funeral on ${endDateTimeStr}.
+Shmira will start on ${startDateTimeStr} and is scheduled to end for the funeral on ${endDateTimeStr}.
 
-        ${event.personalInfo}
-        Volunteer Portal Link (unique to you): ${personalizedUrl}
+${event.personalInfo}
 
-        As a reminder, only Boulder Chevra Kadisha Member Volunteers can sit shmira after business hours at the mortuaries.
-        Log in to the Member Volunteer portal on BoulderChevraKadisha.org for after hours facility access information.
+Volunteer Portal Link (unique to you): ${personalizedUrl}
 
-        Thank you for your mitzvah of providing shmira for this member of our community.
+As a reminder, only Boulder Chevra Kadisha Member Volunteers can sit shmira after business hours at the mortuaries.
+Log in to the Member Volunteer portal on BoulderChevraKadisha.org for after hours facility access information.
 
-        (If you have questions, reply to this email.)
+Thank you for your mitzvah of providing shmira for this member of our community.
+
+(If you have questions, reply to this email.)
       `;
 
       try {
