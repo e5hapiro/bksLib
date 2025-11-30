@@ -26,7 +26,7 @@ Version: 1.0.6* Last updated: 2025-11-12
  * @param {Array<object>} members - The members data.
  * @param {Array<object>} existingMapRows - The existing map rows.
  */
-function mailMappings(sheetInputs, events, guests, members, existingMapRows, addressConfig, webAppUrl) {
+function mailMappings(sheetInputs, events, guests, members, locations, existingMapRows) {
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
   console.log ("DEBUG is undefined");
@@ -62,24 +62,31 @@ function mailMappings(sheetInputs, events, guests, members, existingMapRows, add
        * @returns {string} The full physical address or a helpful message.
        * @private
        */
-      function getAddressFromLocationName_(addressConfig, locationName) {
-        
-        // Use the locationName to look up the confidential address.
-        if (addressConfig[locationName]) {
-          return addressConfig[locationName];
-        }
-        
-        // If the location is not configured (e.g., 'Virtual Shift', 'Other'), return the name.
-        return locationName; 
-      }
+      /*
+      * Function to find a location by name in an array of location objects 
+      * and return the full address as a concatenated string.
+      */
+      function getAddressFromLocationName_(locations, locationName) {        
+        // 1. Find the location object in the array where location.name matches locationName.
+        const foundLocation = locations.find(location => location.name === locationName);
 
+        // 2. If a matching location object is found, construct and return the full address string.
+        if (foundLocation) {
+          // Access properties directly and concatenate: "Street, City, State Zip"
+          return `${foundLocation.street}, ${foundLocation.city}, ${foundLocation.state} ${foundLocation.zip}`; 
+        }
+
+        // 3. If the location is not configured (e.g. 'Virtual Shift', 'Other'), return the original location name.
+        return locationName;
+      }      
 
       // Use person's first and last name for greeting
       const subject = `Baruch Dayan Ha-Emet - Death of ${event.deceasedName} - Chevra Kadisha Services Needed`;
-      const fullAddress = getAddressFromLocationName_(addressConfig, event.locationName);
+      const fullAddress = getAddressFromLocationName_(locations, event.locationName);
 
       // Generate URL for email
       var urlParam = isGuest ? "g" : "m";
+      var webAppUrl = sheetInputs.SCRIPT_URL;
       var personalizedUrl = `${webAppUrl}?${urlParam}=${person.token}`;
       
       // --- Formatted date strings for email ---

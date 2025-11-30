@@ -29,7 +29,7 @@ Version: 1.0.6 Last updated: 2025-11-12
  * Sends emails to guests and members who have not yet received an email.
  * @private
  */
-function updateEventMap(sheetInputs, addressConfig, webAppUrl) {
+function updateEventMap(sheetInputs) {
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
     console.log ("DEBUG is undefined");
@@ -72,6 +72,7 @@ function updateEventMap(sheetInputs, addressConfig, webAppUrl) {
   var events = getEvents(eventSheet);
   var guests = getApprovedGuests(guestSheet);
   var members = getApprovedMembers(memberSheet);
+  var locations = getLocations(sheetInputs);
   var existingMapRows = getExistingMapRows(mapSheet);
   
   syncMappings(events, guests, members, existingMapRows, mapSheet, archiveSheet);
@@ -80,7 +81,7 @@ function updateEventMap(sheetInputs, addressConfig, webAppUrl) {
   existingMapRows = getExistingMapRows(mapSheet);
 
   // Now send a mail for any guests and events that have not already been sent the mail
-  mailMappings(sheetInputs, events, guests, members, existingMapRows, addressConfig, webAppUrl);
+  mailMappings(sheetInputs, events, guests, members, locations, existingMapRows);
 
 }
 

@@ -70,7 +70,7 @@ function getLocations(sheetInputs) {
       locations.push(loc);
     }
 
-    Logger.log("Found " + locations.length + " locations.");
+    // Logger.log("Found " + locations.length + " locations.");
     return locations;
 
   } catch (e) {
