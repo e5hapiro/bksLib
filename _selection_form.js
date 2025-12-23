@@ -1,15 +1,21 @@
 /**
-* -----------------------------------------------------------------
-* _selection_form.js
-* Chevra Kadisha Selection Form Handler
-* -----------------------------------------------------------------
-* _selection_form.js
-Version: 1.0.6 * Last updated: 2025-11-12
+ * -----------------------------------------------------------------
+ * _selection_form.js
+ * Chevra Kadisha Selection Form Handler
+ * -----------------------------------------------------------------
+ * _selection_form.js
+ * Version: 1.0.8 
+ * Last updated: 2025-12-22
  * 
  * CHANGELOG v1.0.3:
  *   - Initial implementation of Selection Form.
  *   v1.0.6:
  *   - Fixed bug in usage of DEBUG
+ *   v1.0.7
+ *   - Fixed regression in that location needed to be found in sendEmails for removal and addition
+ *   - Added ics mail attachments to emails
+ *   v1.0.8
+ *   - Filtered available events and shifts to only those that are relevent based on date/time 
  * -----------------------------------------------------------------
  */
 
@@ -337,155 +343,236 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
   }
 }
 
-
-// SHARED event look up for both guests and members
-function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {    // The master workbook
-  Logger.log("Getting getEventsForToken_[guestOrMemberToken]: " + guestOrMemberToken);
+function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {
+  Logger.log("getEventsForToken_ START, guestOrMemberToken=%s, shiftFlags=%s", guestOrMemberToken, shiftFlags);
+  console.log("getEventsForToken_ START", { guestOrMemberToken, shiftFlags });
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
-    console.log ("DEBUG is undefined");
+    console.log("DEBUG is undefined");
     return;
   }
 
-  // FIELD NAMES TO NORMALIZE
   const dateFields = ["Start Date", "Start Time", "End Date", "End Time"];
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
-  // The map sheet
   const eventMapSheet = ss.getSheetByName(sheetInputs.EVENT_MAP);
   if (!eventMapSheet) throw new Error(`Sheet not found: ${sheetInputs.EVENT_MAP}`);
 
-    // The events sheet
-    const eventSheet = ss.getSheetByName(sheetInputs.EVENT_FORM_RESPONSES);
-    if (!eventSheet) throw new Error(`Sheet not found: ${sheetInputs.EVENT_FORM_RESPONSES}`);
-
+  const eventSheet = ss.getSheetByName(sheetInputs.EVENT_FORM_RESPONSES);
+  if (!eventSheet) throw new Error(`Sheet not found: ${sheetInputs.EVENT_FORM_RESPONSES}`);
 
   const eventMapData = eventMapSheet.getDataRange().getValues();
   const eventTokenColIdx = eventMapData[0].indexOf("Event Token");
   const guestMemberTokenColIdx = eventMapData[0].indexOf("Guest/Member Token");
-  // Find all Event Tokens for this token
-  var matchedEventTokens = [];
+
+  // Collect all event tokens for this guest/member
+  const matchedEventTokens = [];
   for (let i = 1; i < eventMapData.length; i++) {
     if (normalizeToken(eventMapData[i][guestMemberTokenColIdx]) === normalizeToken(guestOrMemberToken)) {
       matchedEventTokens.push(eventMapData[i][eventTokenColIdx]);
     }
   }
+  console.log("matchedEventTokens:", matchedEventTokens);
 
-  // Now collect ALL Form Responses 1 events that have a Token matching any event token
   const eventData = eventSheet.getDataRange().getValues();
   const eventHeaders = eventData[0];
   const eventTokenIdx = eventHeaders.indexOf("Token");
-  var events = [];
+
+  const events = [];
+  const now = new Date();
+
+  const tz = Session.getScriptTimeZone(); // for Utilities.formatDate [web:94]
 
   for (let i = 1; i < eventData.length; i++) {
     if (matchedEventTokens.indexOf(eventData[i][eventTokenIdx]) > -1) {
-      var eventObj = {};
-      for (var col = 0; col < eventHeaders.length; col++) {
+      const eventObj = {};
+      for (let col = 0; col < eventHeaders.length; col++) {
         eventObj[eventHeaders[col]] = eventData[i][col];
       }
-      // --- Normalize date fields to string ---
-      dateFields.forEach(field => {
-        if (
-          eventObj[field] != null &&
-          typeof eventObj[field] === "object" &&
-          eventObj[field].toString
-        ) {
-          eventObj[field] = eventObj[field].toString();
-        }
-      });
 
-      console.log("shiftFlags= " + shiftFlags);
+      // Raw values coming from the sheet (usually Date objects)
+      const rawStartDate = eventObj["Start Date"];
+      const rawEndDate   = eventObj["End Date"];
+      const rawEndTime   = eventObj["End Time"];
 
-      const eventToken = eventObj['Token'];
+      // Build Date objects for filtering (do NOT overwrite original fields)
+      const endDateVal = rawEndDate instanceof Date ? rawEndDate : new Date(rawEndDate);
+      const endTimeVal = rawEndTime instanceof Date ? rawEndTime : new Date(rawEndTime);
+
+      if (!(endDateVal instanceof Date) || isNaN(endDateVal.getTime()) ||
+          !(endTimeVal instanceof Date) || isNaN(endTimeVal.getTime())) {
+        console.warn("Skipping event due to invalid End Date/Time for filtering", {
+          endDateVal, endTimeVal
+        });
+        continue;
+      }
+
+      const eventEnd = new Date(
+        endDateVal.getFullYear(),
+        endDateVal.getMonth(),
+        endDateVal.getDate(),
+        endTimeVal.getHours(),
+        endTimeVal.getMinutes(),
+        endTimeVal.getSeconds()
+      );
+
+      // Skip this event if parsing failed or it already ended
+      if (!(eventEnd instanceof Date) || isNaN(eventEnd.getTime()) || eventEnd <= now) {
+        console.log("Skipping past/invalid event");
+        continue;
+      }
+
+      // ---- add display strings for client ----
+      // Example format: Monday Dec 22, 2025
+      var displayPattern = "EEEE MMM d, yyyy";
+
+      if (rawStartDate instanceof Date) {
+        eventObj.startDateDisplay = Utilities.formatDate(rawStartDate, tz, displayPattern);
+      } else if (rawStartDate) {
+        eventObj.startDateDisplay = String(rawStartDate);
+      } else {
+        eventObj.startDateDisplay = "";
+      }
+
+      if (rawEndDate instanceof Date) {
+        eventObj.endDateDisplay = Utilities.formatDate(rawEndDate, tz, displayPattern);
+      } else if (rawEndDate) {
+        eventObj.endDateDisplay = String(rawEndDate);
+      } else {
+        eventObj.endDateDisplay = "";
+      }
+
+      const eventToken = eventObj["Token"];
 
       if ((shiftFlags & SHIFT_FLAGS.AVAILABLE) !== 0) {
-          eventObj.availableShifts = getAvailableShiftsForEvent(sheetInputs, eventToken);
-        } else {
-          eventObj.availableShifts = null;
-        }
+        eventObj.availableShifts = getAvailableShiftsForEvent(sheetInputs, eventToken);
+      } else {
+        eventObj.availableShifts = null;
+      }
 
-        if ((shiftFlags & SHIFT_FLAGS.SELECTED) !== 0) {
-          eventObj.selectedShifts = getSelectedShiftsByToken(sheetInputs, eventToken, guestOrMemberToken);
-        } else {
-          eventObj.selectedShifts = null;
-        }
+      if ((shiftFlags & SHIFT_FLAGS.SELECTED) !== 0) {
+        eventObj.selectedShifts = getSelectedShiftsByToken(sheetInputs, eventToken, guestOrMemberToken);
+      } else {
+        eventObj.selectedShifts = null;
+      }
 
-        if ((shiftFlags & SHIFT_FLAGS.EVENT) !== 0) {
-          eventObj.eventShifts = getEventShifts(sheetInputs, eventToken);
-        } else {
-          eventObj.eventShifts = null;
-        }
+      if ((shiftFlags & SHIFT_FLAGS.EVENT) !== 0) {
+        eventObj.eventShifts = getEventShifts(sheetInputs, eventToken);
+      } else {
+        eventObj.eventShifts = null;
+      }
 
       events.push(eventObj);
     }
   }
 
-  //logQCVars("getEventsForToken_.events", events);
-
+  console.log("getEventsForToken_ END, events length:", events.length);
   return events;
 }
-
 function getAvailableShiftsForEvent(sheetInputs, eventToken) {
-  Logger.log("Getting getAvailableShiftsForEvent[eventToken]: " + eventToken);
+  Logger.log("getAvailableShiftsForEvent START, eventToken=%s", eventToken);
+  console.log("getAvailableShiftsForEvent START", { eventToken });
 
-  if (typeof sheetInputs.DEBUG === 'undefined') {
-    console.log ("DEBUG is undefined");
+  if (typeof sheetInputs.DEBUG === "undefined") {
+    console.log("DEBUG is undefined");
+    Logger.log("DEBUG is undefined");
     return;
   }
 
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
-  // The shifts master sheet
   const shiftsSheet = ss.getSheetByName(sheetInputs.SHIFTS_MASTER_SHEET);
-  if (!shiftsSheet) throw new Error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
+  if (!shiftsSheet) {
+    console.error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
+    Logger.log("ERROR: Sheet not found: %s", sheetInputs.SHIFTS_MASTER_SHEET);
+    throw new Error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
+  }
 
-  // The shifts master sheet
   const volunteerShiftsSheet = ss.getSheetByName(sheetInputs.VOLUNTEER_LIST_SHEET);
-  if (!volunteerShiftsSheet) throw new Error(`Sheet not found: ${sheetInputs.VOLUNTEER_LIST_SHEET}`);
-
+  if (!volunteerShiftsSheet) {
+    console.error(`Sheet not found: ${sheetInputs.VOLUNTEER_LIST_SHEET}`);
+    Logger.log("ERROR: Sheet not found: %s", sheetInputs.VOLUNTEER_LIST_SHEET);
+    throw new Error(`Sheet not found: ${sheetInputs.VOLUNTEER_LIST_SHEET}`);
+  }
 
   const shiftsData = shiftsSheet.getDataRange().getValues();
   const shiftsHeaders = shiftsData[0];
   const eventTokenIdx = shiftsHeaders.indexOf("Event Token");
   const shiftIdIdx = shiftsHeaders.indexOf("Shift ID");
+  const startEpochIdx = shiftsHeaders.indexOf("Start Epoch");
+  const endEpochIdx = shiftsHeaders.indexOf("End Epoch");
 
-
-  // List ONLY non-duplicated, shift-specific columns to keep
   const keepColumns = ["Shift ID", "Event Token", "Shift Time", "Start Epoch", "End Epoch"];
   const keepIdxs = keepColumns.map(header => shiftsHeaders.indexOf(header));
 
+  const now = Date.now();
+  const tz = Session.getScriptTimeZone(); // for formatting [web:12][web:94]
+
   let eventShifts = [];
   for (let i = 1; i < shiftsData.length; i++) {
-    if (shiftsData[i][eventTokenIdx] === eventToken) {
-      let shiftObj = {};
-      for (let k = 0; k < keepColumns.length; k++) {
-        shiftObj[keepColumns[k]] = shiftsData[i][keepIdxs[k]];
-      }
-      eventShifts.push(shiftObj);
+    const row = shiftsData[i];
+    const rowEventToken = row[eventTokenIdx];
+
+    const startEpochRaw = row[startEpochIdx];
+    const endEpochRaw   = row[endEpochIdx];
+    const startEpoch = Number(startEpochRaw);
+    const endEpoch   = Number(endEpochRaw);
+
+    if (rowEventToken !== eventToken) continue;
+    if (isNaN(startEpoch) || isNaN(endEpoch)) continue;
+
+    // Only skip if shift end is before now
+    if (now > endEpoch) continue;
+
+    let shiftObj = {};
+    for (let k = 0; k < keepColumns.length; k++) {
+      shiftObj[keepColumns[k]] = row[keepIdxs[k]];
     }
+
+    // NEW: human-friendly display string: "Dec 22, 2025 9:00 PM - 10:00 PM"
+    const startDateObj = new Date(startEpoch);
+    const endDateObj   = new Date(endEpoch);
+
+    if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+      const datePart      = Utilities.formatDate(startDateObj, tz, "MMM d, yyyy");
+      const startTimePart = Utilities.formatDate(startDateObj, tz, "h:mm a");
+      const endTimePart   = Utilities.formatDate(endDateObj,   tz, "h:mm a");
+      shiftObj["Shift Display"] = `${datePart} ${startTimePart} - ${endTimePart}`;
+    } else {
+      shiftObj["Shift Display"] = shiftObj["Shift Time"] || "";
+    }
+
+    eventShifts.push(shiftObj);
   }
+
   // Find claimed shifts
   const volunteerData = volunteerShiftsSheet.getDataRange().getValues();
   const volunteerHeaders = volunteerData[0];
   const volunteerShiftIdIdx = volunteerHeaders.indexOf("Shift ID");
+
   const claimedShiftIds = new Set();
   for (let i = 1; i < volunteerData.length; i++) {
-    claimedShiftIds.add(volunteerData[i][volunteerShiftIdIdx]);
+    const claimedId = volunteerData[i][volunteerShiftIdIdx];
+    if (claimedId) claimedShiftIds.add(claimedId);
   }
 
-  const availableShifts = eventShifts.filter(shift => !claimedShiftIds.has(shift[shiftsHeaders[shiftIdIdx]]));
+  let availableShifts;
+  if (eventShifts.length === 0) {
+    availableShifts = [];
+  } else {
+    availableShifts = eventShifts.filter(shift => !claimedShiftIds.has(shift["Shift ID"]));
+  }
 
-  //logQCVars("AvailableShifts:", availableShifts);
-
-  // Return only shifts that are NOT already claimed
   return availableShifts;
 }
+
+
 
 function getSelectedShiftsByToken(sheetInputs, eventToken, userToken) {
   Logger.log("Getting getSelectedShiftsByToken[eventToken]: " + eventToken);
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
-    console.log ("DEBUG is undefined");
+    console.log("DEBUG is undefined");
     return;
   }
 
@@ -506,9 +593,9 @@ function getSelectedShiftsByToken(sheetInputs, eventToken, userToken) {
   // Get all shift IDs for this user
   const userShiftIds = new Set();
   for (let i = 1; i < volunteerData.length; i++) {
-      if (volunteerData[i][userTokenIdx] === userToken) {
-          userShiftIds.add(volunteerData[i][shiftIdIdx]);
-      }
+    if (volunteerData[i][userTokenIdx] === userToken) {
+      userShiftIds.add(volunteerData[i][shiftIdIdx]);
+    }
   }
 
   // Get all shift info for this event token
@@ -516,20 +603,41 @@ function getSelectedShiftsByToken(sheetInputs, eventToken, userToken) {
   const shiftsHeaders = shiftsData[0];
   const shiftIdCol = shiftsHeaders.indexOf("Shift ID");
   const eventTokenCol = shiftsHeaders.indexOf("Event Token");
+  const startEpochIdx = shiftsHeaders.indexOf("Start Epoch");
+  const endEpochIdx   = shiftsHeaders.indexOf("End Epoch");
+
+  const tz = Session.getScriptTimeZone(); // for Utilities.formatDate [web:12][web:94]
 
   let selectedShifts = [];
   for (let i = 1; i < shiftsData.length; i++) {
-      // Only include a shift if it matches both user and event
-      if (
-          shiftsData[i][eventTokenCol] === eventToken &&
-          userShiftIds.has(shiftsData[i][shiftIdCol])
-      ) {
-          let shiftObj = {};
-          for (let j = 0; j < shiftsHeaders.length; j++) {
-              shiftObj[shiftsHeaders[j]] = shiftsData[i][j];
-          }
-          selectedShifts.push(shiftObj);
+    // Only include a shift if it matches both user and event
+    if (
+      shiftsData[i][eventTokenCol] === eventToken &&
+      userShiftIds.has(shiftsData[i][shiftIdCol])
+    ) {
+      let shiftObj = {};
+      for (let j = 0; j < shiftsHeaders.length; j++) {
+        shiftObj[shiftsHeaders[j]] = shiftsData[i][j];
       }
+
+      // Add formatted display string: "Dec 22, 2025 9:00 PM - 10:00 PM"
+      const startEpoch = Number(shiftsData[i][startEpochIdx]);
+      const endEpoch   = Number(shiftsData[i][endEpochIdx]);
+
+      if (!isNaN(startEpoch) && !isNaN(endEpoch)) {
+        const startDateObj = new Date(startEpoch);
+        const endDateObj   = new Date(endEpoch);
+
+        if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+          const datePart      = Utilities.formatDate(startDateObj, tz, "MMM d, yyyy");
+          const startTimePart = Utilities.formatDate(startDateObj, tz, "h:mm a");
+          const endTimePart   = Utilities.formatDate(endDateObj,   tz, "h:mm a");
+          shiftObj["Shift Display"] = `${datePart} ${startTimePart} - ${endTimePart}`;
+        }
+      }
+
+      selectedShifts.push(shiftObj);
+    }
   }
   return selectedShifts;
 }
@@ -703,13 +811,6 @@ function sendShiftEmail(sheetInputs, volunteerData, shifts, actionType) {
     return;
   }
 
-  function getAddressFromLocationName_(addressConfig, locationName) {
-    if (addressConfig[locationName]) {
-      return addressConfig[locationName];
-    }
-    return locationName; 
-  }
-
   const emailAction = actionType === "Addition" ? "added to" : "removed from";
   const urlParam = volunteerData.isMember ? "m" : "g";
   const sheetUrl = sheetInputs["SCRIPT_URL"];
@@ -762,11 +863,13 @@ function sendShiftEmail(sheetInputs, volunteerData, shifts, actionType) {
         eventDateFormatted = date.toLocaleDateString('en-US', options);
       }
     }
-    const fullAddress = getAddressFromLocationName_(sheetInputs.ADDRESS_CONFIG, event.eventLocation);
+
+    const locations = getLocations(sheetInputs);
+    const fullAddress = getAddressFromLocationName(locations, event.eventLocation);
 
     shiftDetails += `\nEvent: ${event.deceasedName || "N/A"}\nLocation: ${event.eventLocation}\nAddress: ${fullAddress}\nDate: ${eventDateFormatted}\nShifts:\n`;
     event.shifts.forEach(shift => {
-      shiftDetails += `  - Time: ${shift["Shift Time"]}\n`;
+      shiftDetails += `  - Time: ${shift["Shift Display"]}\n`;
       totalShifts++;
     });
     shiftDetails += '\n';
@@ -809,7 +912,9 @@ This is an automatic confirmation that your request to be ${emailAction} the fol
           eventDateFormatted = date.toLocaleDateString('en-US', options);
         }
       }
-      const fullAddress = getAddressFromLocationName_(sheetInputs.ADDRESS_CONFIG, event.eventLocation);
+
+      const locations = getLocations(sheetInputs);
+      const fullAddress = getAddressFromLocationName(locations, event.eventLocation);
       let eventHeader = `Event: ${event.deceasedName || "N/A"}\nLocation: ${event.eventLocation}\nAddress: ${fullAddress}\nDate: ${eventDateFormatted}\nShifts:\n`;
       let eventShiftsLines = '';
       event.shifts.forEach(shift => {
@@ -817,7 +922,7 @@ This is an automatic confirmation that your request to be ${emailAction} the fol
           omittedCount++;
           return;
         }
-        eventShiftsLines += `  - Time: ${shift["Shift Time"]}\n`;
+        eventShiftsLines += `  - Time: ${shift["Shift Display"]}\n`;
       });
       if (eventShiftsLines) {
         partialBody += eventHeader + eventShiftsLines + '\n';
@@ -832,7 +937,7 @@ This is an automatic confirmation that your request to be ${emailAction} the fol
   // For brevity: list first event, and maybe count of shifts
   let subject = "Chevra Kadisha Volunteer: Confirmation of Shift " + actionType;
   if (matchedShiftDetails.length === 1) {
-    subject += `: ${matchedShiftDetails[0]["Shift Time"]} at ${matchedShiftDetails[0].eventLocation}`;
+    subject += `: ${matchedShiftDetails[0]["Shift Display"]} at ${matchedShiftDetails[0].eventLocation}`;
   } else if (matchedShiftDetails.length > 1) {
     subject += `: ${matchedShiftDetails.length} shifts`;
   }
@@ -842,14 +947,109 @@ This is an automatic confirmation that your request to be ${emailAction} the fol
     return;
   }
 
+ // Only build ICS files when shifts are ADDED
+  let mailOptions = { body: body };
+
+  if (actionType === "Addition") {
+    const icsAttachments = buildIcsAttachmentsForShifts(sheetInputs, groupedByEvent);
+    if (icsAttachments.length > 0) {
+      mailOptions.attachments = icsAttachments;
+    }
+  }
+
   try {
-    MailApp.sendEmail({
-      to: recipientEmail,
-      subject: subject,
-      body: body
-    });
+    MailApp.sendEmail(recipientEmail, subject, body, mailOptions);
     Logger.log(`Email sent successfully for ${actionType} to ${recipientEmail}`);
   } catch (e) {
     Logger.log(`ERROR sending email for ${actionType}: ${e.toString()}`);
   }
+
+}
+
+/**
+ * Build ICS blobs for all matched shifts.
+ * @param {Object} groupedByEvent The object built in sendShiftEmail.
+ * @param {Object} sheetInputs For location lookup.
+ * @returns {Blob[]} Array of text/calendar blobs.
+ */
+function buildIcsAttachmentsForShifts(sheetInputs, groupedByEvent) {
+  const icsAttachments = [];
+  const locations = getLocations(sheetInputs);
+
+  function buildIcsForShift(summary, description, location, dtStart, dtEnd) {
+    function toIcsUtc(dt) {
+      const pad = n => (n < 10 ? '0' + n : '' + n);
+      const y = dt.getUTCFullYear();
+      const m = pad(dt.getUTCMonth() + 1);
+      const d = pad(dt.getUTCDate());
+      const hh = pad(dt.getUTCHours());
+      const mm = pad(dt.getUTCMinutes());
+      const ss = pad(dt.getUTCSeconds());
+      return y + m + d + 'T' + hh + mm + ss + 'Z';
+    }
+
+    const uid = Utilities.getUuid();
+    const dtStamp = toIcsUtc(new Date());
+
+    const ics =
+      'BEGIN:VCALENDAR\r\n' +
+      'PRODID:-//Chevra Kadisha//Volunteer Shifts//EN\r\n' +
+      'VERSION:2.0\r\n' +
+      'METHOD:PUBLISH\r\n' +
+      'BEGIN:VEVENT\r\n' +
+      'UID:' + uid + '\r\n' +
+      'DTSTAMP:' + dtStamp + '\r\n' +
+      'DTSTART:' + toIcsUtc(dtStart) + '\r\n' +
+      'DTEND:' + toIcsUtc(dtEnd) + '\r\n' +
+      'SUMMARY:' + summary + '\r\n' +
+      'DESCRIPTION:' + description + '\r\n' +
+      'LOCATION:' + location + '\r\n' +
+      'END:VEVENT\r\n' +
+      'END:VCALENDAR\r\n';
+
+    return Utilities.newBlob(ics, 'text/calendar', 'shift.ics');
+  }
+
+  function parseTimeOnDate(date, timePart) {
+    const t = String(timePart || '').trim();
+    const d = new Date(date);
+    const match = t.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)/i);
+    if (!match) return null;
+    let hour = parseInt(match[1], 10);
+    const min = match[2] ? parseInt(match[2], 10) : 0;
+    const ampm = match[3].toUpperCase();
+    if (ampm === 'PM' && hour < 12) hour += 12;
+    if (ampm === 'AM' && hour === 12) hour = 0;
+    d.setHours(hour, min, 0, 0);
+    return d;
+  }
+
+  for (const eventKey in groupedByEvent) {
+    const event = groupedByEvent[eventKey];
+    if (!event.eventStartDate) continue;
+
+    const baseDate = new Date(event.eventStartDate);
+    if (isNaN(baseDate)) continue;
+
+    const fullAddress = getAddressFromLocationName(locations, event.eventLocation);
+
+    event.shifts.forEach(shift => {
+      const timeStr = String(shift['Shift Display'] || '');
+      const parts = timeStr.split('-');
+      if (parts.length !== 2) return;
+
+      const startDate = parseTimeOnDate(baseDate, parts[0]);
+      const endDate = parseTimeOnDate(baseDate, parts[1]);
+      if (!startDate || !endDate) return;
+
+      const summary = `Chevra Kadisha Shift - ${event.deceasedName || 'Volunteer'}`;
+      const description =
+        `Shift time: ${timeStr}\nLocation: ${event.eventLocation}\nAddress: ${fullAddress}`;
+
+      const icsBlob = buildIcsForShift(summary, description, fullAddress, startDate, endDate);
+      icsAttachments.push(icsBlob);
+    });
+  }
+
+  return icsAttachments;
 }

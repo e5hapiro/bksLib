@@ -54,35 +54,9 @@ function mailMappings(sheetInputs, events, guests, members, locations, existingM
         return;
       }
 
-
-      /**
-       * Looks up the confidential physical address based on the location name (e.g., 'Site A').
-       * This function retrieves the secret address stored in ADDRESS_CONFIG.
-       * @param {string} locationName The short name (e.g., 'Site A' or 'Site B').
-       * @returns {string} The full physical address or a helpful message.
-       * @private
-       */
-      /*
-      * Function to find a location by name in an array of location objects 
-      * and return the full address as a concatenated string.
-      */
-      function getAddressFromLocationName_(locations, locationName) {        
-        // 1. Find the location object in the array where location.name matches locationName.
-        const foundLocation = locations.find(location => location.name === locationName);
-
-        // 2. If a matching location object is found, construct and return the full address string.
-        if (foundLocation) {
-          // Access properties directly and concatenate: "Street, City, State Zip"
-          return `${foundLocation.street}, ${foundLocation.city}, ${foundLocation.state} ${foundLocation.zip}`; 
-        }
-
-        // 3. If the location is not configured (e.g. 'Virtual Shift', 'Other'), return the original location name.
-        return locationName;
-      }      
-
       // Use person's first and last name for greeting
       const subject = `Baruch Dayan Ha-Emet - Death of ${event.deceasedName} - Chevra Kadisha Services Needed`;
-      const fullAddress = getAddressFromLocationName_(locations, event.locationName);
+      const fullAddress = getAddressFromLocationName(locations, event.locationName);
 
       // Generate URL for email
       var urlParam = isGuest ? "g" : "m";
@@ -107,12 +81,18 @@ ${event.personalInfo}
 
 Volunteer Portal Link (unique to you): ${personalizedUrl}
 
-As a reminder, only Boulder Chevra Kadisha Member Volunteers can sit shmira after business hours at the mortuaries.
-Log in to the Member Volunteer portal on BoulderChevraKadisha.org for after hours facility access information.
+As a reminder, only Boulder Chevra Kadisha Member Volunteers can sit shmira after business hours at the mortuaries. Log in to the Member Volunteer portal on BoulderChevraKadisha.org for after hours facility access information.
 
 Thank you for your mitzvah of providing shmira for this member of our community.
 
 (If you have questions, reply to this email.)
+
+With gratitude,
+
+Boulder Chevra Kadisha
+Phone - 303-842-5365
+Email - boulder.chevra@gmail.com
+
       `;
 
       try {

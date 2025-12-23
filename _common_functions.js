@@ -19,6 +19,18 @@ Version: 1.0.6 * Last updated: 2025-11-12
  * -----------------------------------------------------------------
  */
 
+
+/**
+ * Working around limitations of fixed web AppUrl
+ */
+
+function getWebAppUrl() {
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbwRfBYPgrka7u9F21Q7cHQAeBAxV51-2vzLholfYuDK0DgquxdOcRCsgSsKgvvuvxje/exec"; 
+  return webAppUrl
+}
+
+
+
 /**
  * Adds a unique token value (UUID) to the specified column in the row that triggered the event.
  * Only works if columnNumber is provided.

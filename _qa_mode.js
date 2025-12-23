@@ -20,17 +20,63 @@ Version: 1.0.6 * Last updated: 2025-11-12
 function QA_bootstrap() {
 
   QA_configProperties();
-  try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
+  // try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
+   try { QA_triggerVolunteerShiftRemoval(QA_configProperties()); Logger.log('QA_triggerVolunteerShiftRemoval: done'); } catch (e) { Logger.log('QA_triggerVolunteerShiftRemoval error: ' + e.message); }
+
+
 
 }
 
 // Harness wrappers
 /**
  * Trigger Updates.
- * @param {string|Spreadsheet} spreadsheetUrlOrId
  */
 function QA_triggerUpdates(sheetInputs) {
   updateShiftsAndEventMap(sheetInputs);
+}
+
+
+
+/**
+ * Shift Removals
+ */
+function QA_triggerVolunteerShiftRemoval(sheetInputs) {
+
+  let selectedShiftIds = ["cc4fab4e-a488-4ef7-8ba1-d88ff4c50b24"];
+  let volunteerData = {"isMember":true,"name":"Lou Shapiro","email":"eshapiro@gmail.com","token":"6f39a3e5-5e33-4ada-8e3d-6cfc044ac1ba","selectedEvents":[{"End Date":"Thu Nov 20 2025 00:00:00 GMT-0700 (Mountain Standard Time)","Personal Information":"Owner of Boulder's favorite restaurant ","selectedShifts":[{"Current Volunteers":0,"Deceased Name":"Josephine Levin","Event Date":{},"Met-or-Meita":"meita","Shift Time":"12:00 AM - 1:00 AM","Event Token":"af9762d3-42da-4b27-94cd-ad1d77f664e0","End Epoch":1763452800000,"Max Volunteers":1,"Shift ID":"cc4fab4e-a488-4ef7-8ba1-d88ff4c50b24","Start Epoch":1763449200000,"Location":"Greenwood & Myers Mortuary","Personal Information":"Owner of Boulder's favorite restaurant ","Pronoun":"Her"},{"Max Volunteers":1,"Pronoun":"Her","Deceased Name":"Josephine Levin","Start Epoch":1763492400000,"Location":"Greenwood & Myers Mortuary","Shift Time":"12:00 PM - 1:00 PM","Met-or-Meita":"meita","Event Date":{},"Shift ID":"5d6d88fd-046e-458c-86e0-012eddbf2263","Personal Information":"Owner of Boulder's favorite restaurant ","Current Volunteers":0,"End Epoch":1763496000000,"Event Token":"af9762d3-42da-4b27-94cd-ad1d77f664e0"},{"End Epoch":1763499600000,"Location":"Greenwood & Myers Mortuary","Personal Information":"Owner of Boulder's favorite restaurant ","Start Epoch":1763496000000,"Pronoun":"Her","Shift ID":"46e4b0ad-6f83-4fe0-974f-1a9d5060f250","Deceased Name":"Josephine Levin","Current Volunteers":0,"Met-or-Meita":"meita","Event Date":{},"Shift Time":"1:00 PM - 2:00 PM","Event Token":"af9762d3-42da-4b27-94cd-ad1d77f664e0","Max Volunteers":1}],"Location":"Greenwood & Myers Mortuary","availableShifts":[],"End Time":"Sat Dec 30 1899 23:00:00 GMT-0700 (Mountain Standard Time)","Token":"af9762d3-42da-4b27-94cd-ad1d77f664e0","eventShifts":[],"Start Date":"Tue Nov 18 2025 00:00:00 GMT-0700 (Mountain Standard Time)","Pronoun":"Her","Start Time":"Sat Dec 30 1899 09:00:00 GMT-0700 (Mountain Standard Time)","Deceased Name":"Josephine Levin","Timestamp":{},"Met-or-Meita":"meita","Email Address":"eshapiro@gmail.com"},{"Location":"Crist Mortuary","Met-or-Meita":"meita","availableShifts":[],"eventShifts":[],"Personal Information":"Dominance","Email Address":"eshapiro@gmail.com","End Date":"Sat Nov 29 2025 00:00:00 GMT-0700 (Mountain Standard Time)","Token":"57bcb924-aa0a-49d2-92b0-556b38276f99","Start Date":"Fri Nov 28 2025 00:00:00 GMT-0700 (Mountain Standard Time)","End Time":"Sat Dec 30 1899 15:30:00 GMT-0700 (Mountain Standard Time)","Timestamp":{},"Pronoun":"Her","Start Time":"Sat Dec 30 1899 14:30:00 GMT-0700 (Mountain Standard Time)","selectedShifts":[],"Deceased Name":"Maryanne Meitzner"}]};
+
+
+
+  let response = null;
+
+  try {
+
+    console.log("--- START triggerVolunteerShiftRemoval ---");
+    console.log ("selectedShiftIds:" + selectedShiftIds);
+    console.log ("volunteerData:" + JSON.stringify(volunteerData));
+
+    if (selectedShiftIds && volunteerData.token) {
+      response = removeVolunteerShifts(sheetInputs, selectedShiftIds, volunteerData.name, volunteerData.token);
+
+      if (response) {
+          console.log("Volunteer shifts removed: Name:" + volunteerData.name);
+          sendShiftEmail(sheetInputs, volunteerData, selectedShiftIds, "Removal");
+          return true;
+        } else {
+          console.log("Volunteer shifts failed to remove: Name:" + volunteerData.name);
+          return true;
+        }
+    }
+    else {
+        console.log("Volunteer shifts failed to remove: Name:" + volunteerData.name);
+        return false;
+    }
+
+  } catch (error) {
+    console.log("FATAL ERROR in triggerVolunteerShiftRemoval: " + error.toString());
+    return null;
+  }
+  
 }
 
 
