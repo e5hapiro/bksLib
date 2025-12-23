@@ -642,13 +642,11 @@ function getSelectedShiftsByToken(sheetInputs, eventToken, userToken) {
   return selectedShifts;
 }
 
-
-
 function getEventShifts(sheetInputs, eventToken) {
   Logger.log("Getting getEventShifts[eventToken]: " + eventToken);  
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
-    console.log ("DEBUG is undefined");
+    console.log("DEBUG is undefined");
     return;
   }
 
@@ -656,27 +654,44 @@ function getEventShifts(sheetInputs, eventToken) {
   const shiftsSheet = ss.getSheetByName(sheetInputs.SHIFTS_MASTER_SHEET);
   if (!shiftsSheet) throw new Error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
 
-  // Get all shift info for this event token
   const shiftsData = shiftsSheet.getDataRange().getValues();
   const shiftsHeaders = shiftsData[0];
-  const eventTokenCol = shiftsHeaders.indexOf("Event Token");
+
+  const eventTokenCol  = shiftsHeaders.indexOf("Event Token");
+  const startEpochIdx  = shiftsHeaders.indexOf("Start Epoch");
+  const endEpochIdx    = shiftsHeaders.indexOf("End Epoch");
+
+  const tz = Session.getScriptTimeZone(); // for Utilities.formatDate
 
   let eventShifts = [];
   for (let i = 1; i < shiftsData.length; i++) {
-      // Only include a shift if it matches both user and event
-      if (
-          shiftsData[i][eventTokenCol] === eventToken 
-      ) {
-          let shiftObj = {};
-          for (let j = 0; j < shiftsHeaders.length; j++) {
-              shiftObj[shiftsHeaders[j]] = shiftsData[i][j];
-          }
-          eventShifts.push(shiftObj);
+    if (shiftsData[i][eventTokenCol] === eventToken) {
+      let shiftObj = {};
+      for (let j = 0; j < shiftsHeaders.length; j++) {
+        shiftObj[shiftsHeaders[j]] = shiftsData[i][j];
       }
+
+      // Add formatted display string: "Dec 22, 2025 9:00 PM - 10:00 PM"
+      const startEpoch = Number(shiftsData[i][startEpochIdx]);
+      const endEpoch   = Number(shiftsData[i][endEpochIdx]);
+
+      if (!isNaN(startEpoch) && !isNaN(endEpoch)) {
+        const startDateObj = new Date(startEpoch);
+        const endDateObj   = new Date(endEpoch);
+
+        if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
+          const datePart      = Utilities.formatDate(startDateObj, tz, "MMM d, yyyy");
+          const startTimePart = Utilities.formatDate(startDateObj, tz, "h:mm a");
+          const endTimePart   = Utilities.formatDate(endDateObj,   tz, "h:mm a");
+          shiftObj["Shift Display"] = `${datePart} ${startTimePart} - ${endTimePart}`;
+        }
+      }
+
+      eventShifts.push(shiftObj);
+    }
   }
   return eventShifts;
 }
-
 
 
 function setVolunteerShifts(sheetInputs, selectedShiftIds, volunteerName, volunteerToken) {
