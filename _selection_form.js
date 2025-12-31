@@ -4,8 +4,8 @@
  * Chevra Kadisha Selection Form Handler
  * -----------------------------------------------------------------
  * _selection_form.js
- * Version: 1.0.8 
- * Last updated: 2025-12-22
+ * Version: 1.0.10 
+ * Last updated: 2025-12-30
  * 
  * CHANGELOG v1.0.3:
  *   - Initial implementation of Selection Form.
@@ -16,6 +16,10 @@
  *   - Added ics mail attachments to emails
  *   v1.0.8
  *   - Filtered available events and shifts to only those that are relevent based on date/time 
+ *   v1.0.9
+ *   - Further optimized to utilize a view that prefilters out older shifts and volunteer shift
+ *   v1.0.10
+ *   - Fixed bug that where only members were getting confirmation emails
  * -----------------------------------------------------------------
  */
 
@@ -481,22 +485,26 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken) {
 
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
-  const shiftsSheet = ss.getSheetByName(sheetInputs.SHIFTS_MASTER_SHEET);
+  // optimization is to only include Latest master shifts
+  const shiftsSheet = ss.getSheetByName(sheetInputs.LATEST_MASTER);
   if (!shiftsSheet) {
-    console.error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
-    Logger.log("ERROR: Sheet not found: %s", sheetInputs.SHIFTS_MASTER_SHEET);
-    throw new Error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
+    console.error(`Sheet not found: ${sheetInputs.LATEST_MASTER}`);
+    Logger.log("ERROR: Sheet not found: %s", sheetInputs.LATEST_MASTER);
+    throw new Error(`Sheet not found: ${sheetInputs.LATEST_MASTER}`);
   }
 
-  const volunteerShiftsSheet = ss.getSheetByName(sheetInputs.VOLUNTEER_LIST_SHEET);
+  // optimization is to only include Latest shifts
+  const volunteerShiftsSheet = ss.getSheetByName(sheetInputs.LATEST_SHIFTS);
   if (!volunteerShiftsSheet) {
-    console.error(`Sheet not found: ${sheetInputs.VOLUNTEER_LIST_SHEET}`);
-    Logger.log("ERROR: Sheet not found: %s", sheetInputs.VOLUNTEER_LIST_SHEET);
-    throw new Error(`Sheet not found: ${sheetInputs.VOLUNTEER_LIST_SHEET}`);
+    console.error(`Sheet not found: ${sheetInputs.LATEST_SHIFTS}`);
+    Logger.log("ERROR: Sheet not found: %s", sheetInputs.LATEST_SHIFTS);
+    throw new Error(`Sheet not found: ${sheetInputs.LATEST_SHIFTS}`);
   }
 
   const shiftsData = shiftsSheet.getDataRange().getValues();
-  const shiftsHeaders = shiftsData[0];
+
+  // Since it is a view, the first row is reserved, starting on row 2 or 1 in Javascript
+  const shiftsHeaders = shiftsData[1];
   const eventTokenIdx = shiftsHeaders.indexOf("Event Token");
   const shiftIdIdx = shiftsHeaders.indexOf("Shift ID");
   const startEpochIdx = shiftsHeaders.indexOf("Start Epoch");
@@ -547,7 +555,9 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken) {
 
   // Find claimed shifts
   const volunteerData = volunteerShiftsSheet.getDataRange().getValues();
-  const volunteerHeaders = volunteerData[0];
+
+  // First row is reserved in the view, so need to start with row 2 or 1 in Javascript
+  const volunteerHeaders = volunteerData[1];
   const volunteerShiftIdIdx = volunteerHeaders.indexOf("Shift ID");
 
   const claimedShiftIds = new Set();
@@ -581,12 +591,17 @@ function getSelectedShiftsByToken(sheetInputs, eventToken, userToken) {
   const shiftsSheet = ss.getSheetByName(sheetInputs.SHIFTS_MASTER_SHEET);
   if (!shiftsSheet) throw new Error(`Sheet not found: ${sheetInputs.SHIFTS_MASTER_SHEET}`);
 
-  const volunteerShiftsSheet = ss.getSheetByName(sheetInputs.VOLUNTEER_LIST_SHEET);
-  if (!volunteerShiftsSheet) throw new Error(`Sheet not found: ${sheetInputs.VOLUNTEER_LIST_SHEET}`);
+  //optimization to query a view that is already filtered to only active shifts
+  const volunteerShiftsSheet = ss.getSheetByName(sheetInputs.LATEST_SHIFTS);
+  if (!volunteerShiftsSheet) throw new Error(`Sheet not found: ${sheetInputs.LATEST_SHIFTS}`);
+
 
   // Get Volunteer Shifts data
   const volunteerData = volunteerShiftsSheet.getDataRange().getValues();
-  const volunteerHeaders = volunteerData[0];
+
+  // In the view, the first row is reserved so start at row 2 or 1 in javascript
+  const volunteerHeaders = volunteerData[1];
+//  const volunteerHeaders = volunteerData[0];
   const shiftIdIdx = volunteerHeaders.indexOf("Shift ID");
   const userTokenIdx = volunteerHeaders.indexOf("Volunteer Token");
 
@@ -833,7 +848,14 @@ function sendShiftEmail(sheetInputs, volunteerData, shifts, actionType) {
   const recipientEmail = volunteerData.email;
 
   const nameOnly = false;
-  const info = getMemberInfoByToken(sheetInputs, volunteerData.token, SHIFT_FLAGS.EVENT, nameOnly  );
+  var info = "";
+
+  if (volunteerData.isMember === true) {
+    info = getMemberInfoByToken(sheetInputs, volunteerData.token, SHIFT_FLAGS.EVENT, nameOnly  );
+  }
+  else {
+    info = getGuestInfoByToken(sheetInputs, volunteerData.token, SHIFT_FLAGS.EVENT, nameOnly  );
+  }
 
   const events = info.events || [];
   const allAvailableShifts = events.flatMap(event => {

@@ -25,7 +25,7 @@ Version: 1.0.6 * Last updated: 2025-11-12
  */
 
 function getWebAppUrl() {
-  const webAppUrl = "https://script.google.com/macros/s/AKfycbwRfBYPgrka7u9F21Q7cHQAeBAxV51-2vzLholfYuDK0DgquxdOcRCsgSsKgvvuvxje/exec"; 
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbwPMxfcwhs096lRUxXD1m0mRFQG6a-n3gofTNaS9wMbB8JdHIHAvLhaWY4pwSTOxGie/exec"; 
   return webAppUrl
 }
 
