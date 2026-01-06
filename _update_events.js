@@ -1,11 +1,12 @@
 /**
-* -----------------------------------------------------------------
-* _update_events.js
-* Chevra Kadisha Shifts Scheduler
-* Event Updates
-* -----------------------------------------------------------------
-* _update_events.js
-Version: 1.0.6 Last updated: 2025-11-12
+ * -----------------------------------------------------------------
+ * _update_events.js
+ * Chevra Kadisha Shifts Scheduler
+ * Event Updates
+ * -----------------------------------------------------------------
+ * _update_events.js
+ * Version: 1.0.6 
+ * Last updated: 2025-11-12
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of updateEvents_.
@@ -15,6 +16,8 @@ Version: 1.0.6 Last updated: 2025-11-12
  *   v1.0.6:
  *   - Fixed bug in usage of DEBUG
  * Event Updates
+ *   v1.0.7:
+ *   - Added filter to getEvents to optimize time
  * -----------------------------------------------------------------
  */
 
@@ -40,7 +43,7 @@ function updateEventMap(sheetInputs) {
   if (sheetInputs.DEBUG) {
     QA_Logging('updateEventMap is called at ' + new Date().toISOString());
     QA_Logging('Spreadsheet ID: ' + sheetInputs.SPREADSHEET_ID);
-    QA_Logging('Event Form Responses: ' + sheetInputs.EVENT_FORM_RESPONSES);
+    QA_Logging('Event Form Responses: ' + sheetInputs.LATEST_EVENTS);
     QA_Logging('Guests Sheet: ' + sheetInputs.GUESTS_SHEET);
     QA_Logging('Members Sheet: ' + sheetInputs.MEMBERS_SHEET);
     QA_Logging('Event Map: ' + sheetInputs.EVENT_MAP);
@@ -50,8 +53,8 @@ function updateEventMap(sheetInputs) {
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
   // The events sheet
-  const eventSheet = ss.getSheetByName(sheetInputs.EVENT_FORM_RESPONSES);
-  if (!eventSheet) throw new Error(`Sheet not found: ${sheetInputs.EVENT_FORM_RESPONSES}`);
+  const eventSheet = ss.getSheetByName(sheetInputs.LATEST_EVENTS);
+  if (!eventSheet) throw new Error(`Sheet not found: ${sheetInputs.LATEST_EVENTS}`);
 
   // The guests sheet
   const guestSheet = ss.getSheetByName(sheetInputs.GUESTS_SHEET);
@@ -92,7 +95,7 @@ function updateEventMap(sheetInputs) {
  */
 function getEvents(sheet) {
   var data = sheet.getDataRange().getValues();
-  var headers = data[0];
+  var headers = data[1]; // Header data is in the second row (index 1)
 
   // Get indices for all columns
   var timestampCol = headers.indexOf("Timestamp");
@@ -108,24 +111,29 @@ function getEvents(sheet) {
   var metOrMeitaCol = headers.indexOf("Met-or-Meita");
   var tokenCol = headers.indexOf("Token");
 
-  return data.slice(1).map(function(row) {
-    return {
-      timestamp: row[timestampCol],
-      email: row[emailCol],
-      deceasedName: row[deceasedNameCol],
-      locationName: row[locationCol],
-      startDate: row[startDateCol],
-      startTime: row[startTimeCol],
-      endDate: row[endDateCol],
-      endTime: row[endTimeCol],
-      personalInfo: row[personalInfoCol],
-      pronoun: row[pronounCol],
-      metOrMeita: row[metOrMeitaCol],
-      token: row[tokenCol],
-      // Optionally add a unique id field for mapping
-      id: row[tokenCol] // or another unique identifier column
-    };
-  });
+  // Filter rows where timestamp is empty, then map
+  return data.slice(2) // Changed to 2 to skip the header row itself (since headers are at index 1)
+    .filter(function(row) {
+      // Check if the timestamp column is not an empty string and not null/undefined
+      return row[timestampCol] !== "" && row[timestampCol] != null;
+    })
+    .map(function(row) {
+      return {
+        timestamp: row[timestampCol],
+        email: row[emailCol],
+        deceasedName: row[deceasedNameCol],
+        locationName: row[locationCol],
+        startDate: row[startDateCol],
+        startTime: row[startTimeCol],
+        endDate: row[endDateCol],
+        endTime: row[endTimeCol],
+        personalInfo: row[personalInfoCol],
+        pronoun: row[pronounCol],
+        metOrMeita: row[metOrMeitaCol],
+        token: row[tokenCol],
+        id: row[tokenCol]
+      };
+    });
 }
 
 /**

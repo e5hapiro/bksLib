@@ -1,11 +1,12 @@
 /**
-* -----------------------------------------------------------------
-* _trigger_updates.js
-* Chevra Kadisha Shifts Scheduler
-* Trigger Updates
-* -----------------------------------------------------------------
-* _trigger_updates.js
-Version: 1.0.6* Last updated: 2025-11-12
+ * -----------------------------------------------------------------
+ * _trigger_updates.js
+ * Chevra Kadisha Shifts Scheduler
+ * Trigger Updates
+ * -----------------------------------------------------------------
+ * _trigger_updates.js
+ * Version: 1.0.8
+ * Last updated: 2026-01-05
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of triggeredFunction.
@@ -21,7 +22,8 @@ Version: 1.0.6* Last updated: 2025-11-12
  *   - Added spreadsheet ID and sheet inputs retrieval.
  *   v1.0.6:
  *   - Fixed bug in usage of DEBUG
-
+ *   v1.0.8
+ *   - Improved debugging logs so can recreate the problem
  * Trigger Updates
  * -----------------------------------------------------------------
  */
@@ -49,7 +51,7 @@ function updateShiftsAndEventMap(sheetInputs) {
 
   // Now use these variables in your function logic
   QA_Logging('triggeredFunction is called at ' + new Date().toISOString(), sheetInputs.DEBUG);
-  QA_Logging('Spreadsheet ID: ' + sheetInputs.SPREADSHEET_ID, sheetInputs.DEBUG);
+  QA_Logging('sheetInputs: ' + sheetInputs);
   updateShifts(sheetInputs);
   updateEventMap(sheetInputs);
 }

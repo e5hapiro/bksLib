@@ -1,20 +1,23 @@
 /**
-* -----------------------------------------------------------------
-* _trigger_emails.js
-* Chevra Kadisha Shifts Scheduler
-* Trigger Emails
-* -----------------------------------------------------------------
-* _trigger_emails.js
-Version: 1.0.6* Last updated: 2025-11-12
+ * -----------------------------------------------------------------
+ * _trigger_emails.js
+ * Chevra Kadisha Shifts Scheduler
+ * Trigger Emails
+ * -----------------------------------------------------------------
+ * _trigger_emails.js
+ * Version: 1.0.7
+ * Last updated: 2025-01-05
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of mailMappings.
  *   - Added logging and error handling.
  *   - Added event, guest, and member data retrieval.
  *   - Added mapping synchronization.
-  *   v1.0.6:
+ *   v1.0.6:
  *   - Fixed bug in usage of DEBUG
-* Trigger Emails
+ *   v1.0.7:
+ *   - Fixed bug - limit emails sent only to current events
+ * Trigger Emails
  * -----------------------------------------------------------------
  */
   

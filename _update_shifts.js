@@ -1,18 +1,21 @@
 /**
-* -----------------------------------------------------------------
-* _sync_shifts.js
-* Chevra Kadisha Shifts Scheduler
-* Shift Synchronization
-* -----------------------------------------------------------------
-* _sync_shifts.js
-Version: 1.0.6 * Last updated: 2025-11-12
+ * -----------------------------------------------------------------
+ * _sync_shifts.js
+ * Chevra Kadisha Shifts Scheduler
+ * Shift Synchronization
+ * -----------------------------------------------------------------
+ * _sync_shifts.js
+ * Version: 1.0.7
+ * Last updated: 2026-01-05
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of createHourlyShifts_.
  *   - Added logging and error handling.
  *   - Added shift synchronization to the Shifts Master sheet.
- * v1.0.6
+ *   v1.0.6
  *   - Fixed bug in usage of DEBUG
+ *   v1.0.7:
+ *   - Fixed bug - limit shifts created only to current events
  * Shift Synchronization
  * -----------------------------------------------------------------
  */
@@ -33,8 +36,8 @@ function updateShifts(sheetInputs) {
     const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
     // The events sheet
-    const eventSheet = ss.getSheetByName(sheetInputs.EVENT_FORM_RESPONSES);
-    if (!eventSheet) throw new Error(`Sheet not found: ${sheetInputs.EVENT_FORM_RESPONSES}`);
+    const eventSheet = ss.getSheetByName(sheetInputs.LATEST_EVENTS);
+    if (!eventSheet) throw new Error(`Sheet not found: ${sheetInputs.LATEST_EVENTS}`);
 
     var events = getEvents(eventSheet);
 

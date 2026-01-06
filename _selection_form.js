@@ -4,8 +4,8 @@
  * Chevra Kadisha Selection Form Handler
  * -----------------------------------------------------------------
  * _selection_form.js
- * Version: 1.0.10 
- * Last updated: 2025-12-30
+ * Version: 1.0.11 
+ * Last updated: 2025-01-05
  * 
  * CHANGELOG v1.0.3:
  *   - Initial implementation of Selection Form.
@@ -20,6 +20,8 @@
  *   - Further optimized to utilize a view that prefilters out older shifts and volunteer shift
  *   v1.0.10
  *   - Fixed bug that where only members were getting confirmation emails
+ *   v1.0.11
+ *   - Fixed bug where event shifts were skipped because the header was not looking in row 2
  * -----------------------------------------------------------------
  */
 
@@ -379,7 +381,7 @@ function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {
   console.log("matchedEventTokens:", matchedEventTokens);
 
   const eventData = eventSheet.getDataRange().getValues();
-  const eventHeaders = eventData[0];
+  const eventHeaders = eventData[1]; // Headers on the second row
   const eventTokenIdx = eventHeaders.indexOf("Token");
 
   const events = [];

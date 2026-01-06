@@ -20,8 +20,10 @@ Version: 1.0.6 * Last updated: 2025-11-12
 function QA_bootstrap() {
 
   QA_configProperties();
-  // try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
-   try { QA_triggerVolunteerShiftRemoval(QA_configProperties()); Logger.log('QA_triggerVolunteerShiftRemoval: done'); } catch (e) { Logger.log('QA_triggerVolunteerShiftRemoval error: ' + e.message); }
+  try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
+    
+  //try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
+  //try { QA_triggerVolunteerShiftRemoval(QA_configProperties()); Logger.log('QA_triggerVolunteerShiftRemoval: done'); } catch (e) { Logger.log('QA_triggerVolunteerShiftRemoval error: ' + e.message); }
 
 
 
@@ -35,6 +37,16 @@ function QA_triggerUpdates(sheetInputs) {
   updateShiftsAndEventMap(sheetInputs);
 }
 
+
+function QA_getShifts(sheetInputs){
+  const volunteerToken = "a8812758-8b09-4063-abbb-07ffc2653d4a";
+  const isMember = true;
+  const shiftFlags =1;
+  const nameOnly = false;
+
+  getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly)
+
+}
 
 
 /**
@@ -146,21 +158,22 @@ function QA_configProperties() {
   const webAppUrl = 
   "https://script.google.com/macros/s/AKfycbyqS-grJJ9NU-YctOP5rYCCFO6Lj6vhUPJieXK_R-MzsgrYuJE/exec"
 
-  // hardcode the names of the sheet databases
-  const sheetInputs = {
-    DEBUG: true,
-    SCRIPT_URL: webAppUrl,
-    SPREADSHEET_ID: ss,
+  const sheetInputs = 
+  { DEBUG: true,
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwPMxfcwhs096lRUxXD1m0mRFQG6a-n3gofTNaS9wMbB8JdHIHAvLhaWY4pwSTOxGie/exec',
+    SPREADSHEET_ID: '1cCouQRRpEN0nUhN45m14_z3oaONo7HHgwyfYDkcu2mw',
     EVENT_FORM_RESPONSES: 'Form Responses 1',
     SHIFTS_MASTER_SHEET: 'Shifts Master',
     VOLUNTEER_LIST_SHEET: 'Volunteer Shifts',
+    LATEST_EVENTS: '_view_active_events',
+    LATEST_MASTER: '_view_active_master',
+    LATEST_SHIFTS: '_view_active_shifts',
     GUESTS_SHEET: 'Guests',
     MEMBERS_SHEET: 'Members',
     LOCATIONS_SHEET: 'Locations',
     EVENT_MAP: 'Event Map',
     ARCHIVE_EVENT_MAP: 'Archive Event Map',
-    TOKEN_COLUMN_NUMBER: 12
-  };
+    TOKEN_COLUMN_NUMBER: 12 };
 
   return sheetInputs;
 
