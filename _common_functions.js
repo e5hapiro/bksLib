@@ -25,7 +25,7 @@ Version: 1.0.6 * Last updated: 2025-11-12
  */
 
 function getWebAppUrl() {
-  const webAppUrl = "https://script.google.com/macros/s/AKfycbz8ewK4BE-WwpEFu8Pn-HVTcdT_pZWrnvq2JInlvgQ0iiXuIZ5VkDpHtGfN24NMgUhR/exec"; 
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbzQ0uPezk_NN4gcSAD9g0CI4vwEhcjiRR5Httb0g14qa3HEPRCDqtAenYzbIQd3-AqX/exec"; 
   return webAppUrl
 }
 
@@ -180,3 +180,86 @@ function getSpreadsheet_(ss_id) {
   return SpreadsheetApp.openById(ss_id);
 }
 
+
+/**
+ * Ensures a sheet exists in the spreadsheet. If it does not exist, creates it.
+ * 
+ * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss The spreadsheet object.
+ * @param {string} sheetName The name of the sheet to ensure exists.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The sheet object (either existing or newly created).
+ * @private
+ */
+function ensureSheetExists_(sheetInputs, ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    if (typeof sheetInputs !== 'undefined' && sheetInputs.DEBUG) {
+      console.log('Created new sheet: ' + sheetName);
+    }
+  }
+  
+  return sheet;
+}
+
+/**
+ * Ensures a sheet has headers in its first row. If the first row is empty or missing,
+ * inserts a new row at the top with the provided headers.
+ * 
+ * If the sheet is empty (no data), inserts the header row.
+ * If the sheet has data and row 1 is not empty, assumes headers are already present.
+ * If you need to force headers even when data exists, modify the logic accordingly.
+ * 
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The sheet to check/modify.
+ * @param {Array<string>} headers Array of header column names.
+ * @private
+ */
+function ensureSheetHeaders_(sheetInputs, sheet, headers) {
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  
+  // If sheet is completely empty, insert header row at row 1
+  if (lastRow === 0) {
+    sheet.insertRows(1, 1);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    if (typeof sheetInputs !== 'undefined' && sheetInputs.DEBUG) {
+      console.log('Inserted headers into empty sheet.');
+    }
+    return;
+  }
+  
+  // Check if first row looks like headers by examining a few cells
+  var firstRowData = sheet.getRange(1, 1, 1, Math.min(headers.length, lastCol)).getValues()[0];
+  
+  // If first row is all empty cells, it's likely a placeholder row
+  var firstRowEmpty = firstRowData.every(function(cell) {
+    return cell === '' || cell === null;
+  });
+  
+  if (firstRowEmpty && lastRow >= 1) {
+    // First row is empty but data exists; replace row 1 with headers
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    if (typeof sheetInputs !== 'undefined' && sheetInputs.DEBUG) {
+      console.log('Replaced empty first row with headers.');
+    }
+    return;
+  }
+  
+  // If first row is not empty, assume headers already exist
+  if (!firstRowEmpty) {
+    if (typeof sheetInputs !== 'undefined' && sheetInputs.DEBUG) {
+      console.log('First row already contains data; assuming headers present.');
+    }
+    return;
+  }
+  
+  // Fallback: if we reach here and lastRow > 0 but data exists below, 
+  // insert a new row at the top
+  if (lastRow > 0) {
+    sheet.insertRows(1, 1);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    if (typeof sheetInputs !== 'undefined' && sheetInputs.DEBUG) {
+      console.log('Inserted headers at top of sheet.');
+    }
+  }
+}

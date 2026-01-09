@@ -52,6 +52,7 @@ function updateShiftsAndEventMap(sheetInputs) {
   // Now use these variables in your function logic
   QA_Logging('triggeredFunction is called at ' + new Date().toISOString(), sheetInputs.DEBUG);
   QA_Logging('sheetInputs: ' + sheetInputs);
+  updateArchive(sheetInputs);
   updateShifts(sheetInputs);
   updateEventMap(sheetInputs);
 }

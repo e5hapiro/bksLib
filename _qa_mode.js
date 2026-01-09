@@ -19,8 +19,9 @@ Version: 1.0.6 * Last updated: 2025-11-12
  */
 function QA_bootstrap() {
 
-  QA_configProperties();
-  try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
+  try { QA_archiveUpdates(QA_configProperties()); Logger.log('QA_archiveUpdates: done'); } catch (e) { Logger.log('QA_archiveUpdates error: ' + e.message); }
+
+  //try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
     
   //try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
   //try { QA_triggerVolunteerShiftRemoval(QA_configProperties()); Logger.log('QA_triggerVolunteerShiftRemoval: done'); } catch (e) { Logger.log('QA_triggerVolunteerShiftRemoval error: ' + e.message); }
@@ -37,6 +38,10 @@ function QA_triggerUpdates(sheetInputs) {
   updateShiftsAndEventMap(sheetInputs);
 }
 
+
+function QA_archiveUpdates(sheetInputs) {
+  updateArchive(sheetInputs);
+}
 
 function QA_getShifts(sheetInputs){
   const volunteerToken = "a8812758-8b09-4063-abbb-07ffc2653d4a";
@@ -173,6 +178,8 @@ function QA_configProperties() {
     LOCATIONS_SHEET: 'Locations',
     EVENT_MAP: 'Event Map',
     ARCHIVE_EVENT_MAP: 'Archive Event Map',
+    ARCHIVE_HISTORICAL: 'Historical Archive',
+    ARCHIVE_HISTORICAL_INDEX: 'Historical Archive Index',
     TOKEN_COLUMN_NUMBER: 12 };
 
   return sheetInputs;
