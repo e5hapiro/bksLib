@@ -1,11 +1,12 @@
 /**
-* -----------------------------------------------------------------
-* _common_functions.js
-* Chevra Kadisha Shifts Scheduler
-* Common functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
-* -----------------------------------------------------------------
-* _common_functions.js
-Version: 1.0.6 * Last updated: 2025-11-12
+ * -----------------------------------------------------------------
+ * _common_functions.js
+ * Chevra Kadisha Shifts Scheduler
+ * Common functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
+ * -----------------------------------------------------------------
+ * _common_functions.js
+ *  Version: 1.0.7 
+ *  Last updated: 2026-01-19
  * 
  * CHANGELOG v1.0.1:
  *   - Added enhanced error handling and logging to addToken.
@@ -14,6 +15,8 @@ Version: 1.0.6 * Last updated: 2025-11-12
  *   - Added formattedDateAndTime for consistent date formatting.
  *   v1.0.6:
  *   - Fixed bug in usage of DEBUG
+ *   v1.0.7:
+ *   - Fixed formattedDateAndTime which required input of separate date and time
  *
  * Utility functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
  * -----------------------------------------------------------------
@@ -25,7 +28,7 @@ Version: 1.0.6 * Last updated: 2025-11-12
  */
 
 function getWebAppUrl() {
-  const webAppUrl = "https://script.google.com/macros/s/AKfycbzQ0uPezk_NN4gcSAD9g0CI4vwEhcjiRR5Httb0g14qa3HEPRCDqtAenYzbIQd3-AqX/exec"; 
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbzeF8O_va2qLvjnEYJqDrIfbZUHzPHdNSARHjLv0uFOsNwQpGMv9LrEJgXn5ilDezSr/exec"; 
   return webAppUrl
 }
 
@@ -130,19 +133,34 @@ function logQCVars(context, varsObject) {
  * @param {Date} inputDate - JavaScript Date object.
  * @returns {string} - Date formatted as "Weekday, Month Day, Year at HH:MM AM/PM TZ".
  */
-function formattedDateAndTime(inputDate) {
+function formattedDateAndTime(inputDate, inputTime) {
+  // Validate inputs
   if (!(inputDate instanceof Date) || isNaN(inputDate)) {
     throw new Error("Invalid date");
   }
+  if (!(inputTime instanceof Date) || isNaN(inputTime)) {
+    throw new Error("Invalid time");
+  }
+
+  // Combine date and time: use date part from inputDate, time part from inputTime
+  const combinedDateTime = new Date(
+    inputDate.getFullYear(),
+    inputDate.getMonth(),
+    inputDate.getDate(),
+    inputTime.getHours(),
+    inputTime.getMinutes(),
+    inputTime.getSeconds()
+  );
 
   const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const optionsTime = { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' };
 
-  const dateStr = inputDate.toLocaleDateString('en-US', optionsDate);
-  const timeStr = inputDate.toLocaleTimeString('en-US', optionsTime);
+  const dateStr = combinedDateTime.toLocaleDateString('en-US', optionsDate);
+  const timeStr = combinedDateTime.toLocaleTimeString('en-US', optionsTime);
 
   return `${dateStr} at ${timeStr}`;
 }
+
 
 
 /**

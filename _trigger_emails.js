@@ -5,8 +5,8 @@
  * Trigger Emails
  * -----------------------------------------------------------------
  * _trigger_emails.js
- * Version: 1.0.7
- * Last updated: 2025-01-05
+ * Version: 1.0.8
+ * Last updated: 2025-01-19
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of mailMappings.
@@ -17,6 +17,8 @@
  *   - Fixed bug in usage of DEBUG
  *   v1.0.7:
  *   - Fixed bug - limit emails sent only to current events
+ *   v1.0.8:
+ *   - Fixed Date/Time which was displaying incorrectly on emails
  * Trigger Emails
  * -----------------------------------------------------------------
  */
@@ -67,8 +69,8 @@ function mailMappings(sheetInputs, events, guests, members, locations, existingM
       var personalizedUrl = `${webAppUrl}?${urlParam}=${person.token}`;
       
       // --- Formatted date strings for email ---
-      var startDateTimeStr = formattedDateAndTime(event.startDate);
-      var endDateTimeStr = formattedDateAndTime(event.endDate); 
+      var startDateTimeStr = formattedDateAndTime(event.startDate, event.startTime);
+      var endDateTimeStr = formattedDateAndTime(event.endDate, event.endTime); 
 
       // Compose body with all fields
       const body = `
