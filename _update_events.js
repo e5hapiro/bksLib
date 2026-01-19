@@ -5,8 +5,8 @@
  * Event Updates
  * -----------------------------------------------------------------
  * _update_events.js
- * Version: 1.0.6 
- * Last updated: 2025-11-12
+ * Version: 1.0.8 
+ * Last updated: 2026-01-19
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of updateEvents_.
@@ -18,15 +18,12 @@
  * Event Updates
  *   v1.0.7:
  *   - Added filter to getEvents to optimize time
+ *   v1.0.8:
+ *   - QA Logger bug, was not including DEBUG so defaulting to false
+ *   - Included try / catch for error logging when debug is true
  * -----------------------------------------------------------------
  */
 
-
-/**
- * Updates the event map with the latest data from the events, guests, and members sheets.
- * Sends emails to guests and members who have not yet received an email.
- * @private
- */
 /**
  * Updates the event map with the latest data from the events, guests, and members sheets.
  * Sends emails to guests and members who have not yet received an email.
@@ -35,57 +32,67 @@
 function updateEventMap(sheetInputs) {
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
-    console.log ("DEBUG is undefined");
+    console.log("DEBUG is undefined");
     return;
   }
 
-
   if (sheetInputs.DEBUG) {
-    QA_Logging('updateEventMap is called at ' + new Date().toISOString());
-    QA_Logging('Spreadsheet ID: ' + sheetInputs.SPREADSHEET_ID);
-    QA_Logging('Event Form Responses: ' + sheetInputs.LATEST_EVENTS);
-    QA_Logging('Guests Sheet: ' + sheetInputs.GUESTS_SHEET);
-    QA_Logging('Members Sheet: ' + sheetInputs.MEMBERS_SHEET);
-    QA_Logging('Event Map: ' + sheetInputs.EVENT_MAP);
-    QA_Logging('Archive Event Map: ' + sheetInputs.ARCHIVE_EVENT_MAP);
+    QA_Logging('updateEventMap is called at ' + new Date().toISOString(), sheetInputs.DEBUG);
+    QA_Logging('Spreadsheet ID: ' + sheetInputs.SPREADSHEET_ID, sheetInputs.DEBUG);
+    QA_Logging('Event Form Responses: ' + sheetInputs.LATEST_EVENTS, sheetInputs.DEBUG);
+    QA_Logging('Guests Sheet: ' + sheetInputs.GUESTS_SHEET, sheetInputs.DEBUG);
+    QA_Logging('Members Sheet: ' + sheetInputs.MEMBERS_SHEET, sheetInputs.DEBUG);
+    QA_Logging('Event Map: ' + sheetInputs.EVENT_MAP, sheetInputs.DEBUG);
+    QA_Logging('Archive Event Map: ' + sheetInputs.ARCHIVE_EVENT_MAP, sheetInputs.DEBUG);
   }
-  // The master workbook
-  const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
-  // The events sheet
-  const eventSheet = ss.getSheetByName(sheetInputs.LATEST_EVENTS);
-  if (!eventSheet) throw new Error(`Sheet not found: ${sheetInputs.LATEST_EVENTS}`);
+  try {
+    // The master workbook
+    const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
 
-  // The guests sheet
-  const guestSheet = ss.getSheetByName(sheetInputs.GUESTS_SHEET);
-  if (!guestSheet) throw new Error(`Sheet not found: ${sheetInputs.GUESTS_SHEET}`);
+    // The events sheet
+    const eventSheet = ss.getSheetByName(sheetInputs.LATEST_EVENTS);
+    if (!eventSheet) throw new Error('Sheet not found: ' + sheetInputs.LATEST_EVENTS);
 
-  // The members sheet
-  const memberSheet = ss.getSheetByName(sheetInputs.MEMBERS_SHEET);
-  if (!memberSheet) throw new Error(`Sheet not found: ${sheetInputs.MEMBERS_SHEET}`);
+    // The guests sheet
+    const guestSheet = ss.getSheetByName(sheetInputs.GUESTS_SHEET);
+    if (!guestSheet) throw new Error('Sheet not found: ' + sheetInputs.GUESTS_SHEET);
 
-  // The map sheet
-  const mapSheet = ss.getSheetByName(sheetInputs.EVENT_MAP);
-  if (!mapSheet) throw new Error(`Sheet not found: ${sheetInputs.EVENT_MAP}`);
+    // The members sheet
+    const memberSheet = ss.getSheetByName(sheetInputs.MEMBERS_SHEET);
+    if (!memberSheet) throw new Error('Sheet not found: ' + sheetInputs.MEMBERS_SHEET);
 
-  // The archive map sheet
-  const archiveSheet = ss.getSheetByName(sheetInputs.ARCHIVE_EVENT_MAP);
-  if (!mapSheet) throw new Error(`Sheet not found: ${sheetInputs.ARCHIVE_EVENT_MAP}`);
+    // The map sheet
+    const mapSheet = ss.getSheetByName(sheetInputs.EVENT_MAP);
+    if (!mapSheet) throw new Error('Sheet not found: ' + sheetInputs.EVENT_MAP);
 
-  var events = getEvents(eventSheet);
-  var guests = getApprovedGuests(guestSheet);
-  var members = getApprovedMembers(memberSheet);
-  var locations = getLocations(sheetInputs);
-  var existingMapRows = getExistingMapRows(mapSheet);
-  
-  syncMappings(events, guests, members, existingMapRows, mapSheet, archiveSheet);
+    // The archive map sheet
+    const archiveSheet = ss.getSheetByName(sheetInputs.ARCHIVE_EVENT_MAP);
+    if (!archiveSheet) throw new Error('Sheet not found: ' + sheetInputs.ARCHIVE_EVENT_MAP);
 
-  // After removals need to refresh the existing Map Rows before printing
-  existingMapRows = getExistingMapRows(mapSheet);
+    var events          = getEvents(eventSheet);
+    var guests          = getApprovedGuests(guestSheet);      // may throw if Approvals missing
+    var members         = getApprovedMembers(memberSheet);
+    var locations       = getLocations(sheetInputs);
+    var existingMapRows = getExistingMapRows(mapSheet);
 
-  // Now send a mail for any guests and events that have not already been sent the mail
-  mailMappings(sheetInputs, events, guests, members, locations, existingMapRows);
+    syncMappings(events, guests, members, existingMapRows, mapSheet, archiveSheet);
 
+    // After removals need to refresh the existing Map Rows before printing
+    existingMapRows = getExistingMapRows(mapSheet);
+
+    // Now send a mail for any guests and events that have not already been sent the mail
+    mailMappings(sheetInputs, events, guests, members, locations, existingMapRows);
+
+  } catch (err) {
+    // Centralized QA logging of any upstream failure
+    QA_Logging('ERROR in updateEventMap: ' + err.message, sheetInputs.DEBUG);
+    // Optional: more detail if helpful
+    QA_Logging('Stack trace: ' + (err.stack || 'no stack'), sheetInputs.DEBUG);
+
+    // Re-throw so the failure is visible to triggers / UI
+    throw err;
+  }
 }
 
 /**
@@ -107,6 +114,11 @@ function getEvents(sheet) {
 
   var idx = {};
   headers.forEach(function(h, i) { idx[h] = i; });
+
+  // Enforce required Token column
+  if (idx['Token'] === undefined) {
+    throw new Error("Required column 'Token' is missing from the events sheet.");
+  }
 
   return data.slice(2) // skip first two rows
     .filter(function(row) {
@@ -139,11 +151,25 @@ function getEvents(sheet) {
  */
 function getApprovedGuests(sheet) {
   var data = sheet.getDataRange().getValues();
+  if (data.length === 0) {
+    throw new Error("Guests sheet has no data (no header row found).");
+  }
+
   var headers = data[0];
 
-  // Find all column indices
+  // Build header index map
   var idx = {};
   headers.forEach(function(h, i) { idx[h] = i; });
+
+  // Enforce required Approvals column
+  if (idx['Approvals'] === undefined) {
+    throw new Error("Required column 'Approvals' is missing from the guests sheet.");
+  }
+
+  // Enforce required Token column
+  if (idx['Token'] === undefined) {
+    throw new Error("Required column 'Token' is missing from the guests sheet.");
+  }
 
   return data.slice(1)
     .filter(function(row) {
@@ -197,6 +223,17 @@ function getApprovedMembers(sheet) {
   var headers = data[0];
   var idx = {};
   headers.forEach(function(h, i) { idx[h] = i; });
+
+  // Enforce required Approvals column
+  if (idx['Approvals'] === undefined) {
+    throw new Error("Required column 'Approvals' is missing from the members sheet.");
+  }
+
+  // Enforce required Token column
+  if (idx['Token'] === undefined) {
+    throw new Error("Required column 'Token' is missing from the members sheet.");
+  }
+
 
   return data.slice(1)
     .filter(function(row) {
