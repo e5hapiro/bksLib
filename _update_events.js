@@ -100,7 +100,7 @@ function updateEventMap(sheetInputs) {
  *  *
  * Expected headers (second row): Timestamp, Email Address, Deceased Name, Location,
  * Start Date, Start Time, End Date, End Time, Personal Information,
- * Pronoun, Met-or-Meita, Token.
+ * Pronoun, Met-or-Meta, Token.
  *
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The events sheet.
  * @returns {Array<Object>} The events data.
@@ -137,7 +137,7 @@ function getEvents(sheet) {
         endTime: row[idx['End Time']],
         personalInfo: row[idx['Personal Information']],
         pronoun: row[idx['Pronoun']],
-        metOrMeita: row[idx['Met-or-Meita']],
+        metOrMeta: row[idx['Met-or-Meta']],
         token: row[idx['Token']],
         id: row[idx['Token']]
       };

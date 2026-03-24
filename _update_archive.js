@@ -72,7 +72,7 @@ function updateArchive(sheetInputs) {
     'archiveKey', 'insertedAt',
     'eventToken', 'eventTimestamp', 'eventEmail', 'eventDeceasedName', 'eventLocationName',
     'eventStartDate', 'eventStartTime', 'eventEndDate', 'eventEndTime',
-    'eventPersonalInfo', 'eventPronoun', 'eventMetOrMeita',
+    'eventPersonalInfo', 'eventPronoun', 'eventMetOrMeta',
     'shiftId', 'shiftEventDate', 'shiftTime', 'shiftMaxVolunteers', 'shiftCurrentVolunteers',
     'shiftStartEpoch', 'shiftEndEpoch',
     'volunteerShiftTimestamp', 'volunteerToken', 'volunteerNameRaw',
@@ -184,7 +184,7 @@ function updateArchive(sheetInputs) {
  *
  * Expected headers: Shift ID, Deceased Name, Location, Event Date, Shift Time,
  * Max Volunteers, Current Volunteers, Start Epoch, End Epoch, Pronoun,
- * Met-or-Meita, Personal Information, Event Token.
+ * Met-or-Meta, Personal Information, Event Token.
  *
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The master shifts sheet.
  * @returns {Array<Object>} The master shifts data.
@@ -210,7 +210,7 @@ function getMasterShifts_(sheet) {
       startEpoch: Number(row[idx['Start Epoch']]) || 0,
       endEpoch: Number(row[idx['End Epoch']]) || 0,
       pronoun: row[idx['Pronoun']],
-      metOrMeita: row[idx['Met-or-Meita']],
+      metOrMeta: row[idx['Met-or-Meta']],
       personalInfo: row[idx['Personal Information']],
       eventToken: row[idx['Event Token']]
     };
@@ -331,7 +331,7 @@ function buildArchiveKey_(eventToken, shiftId, volunteerToken) {
  * 11. eventEndTime
  * 12. eventPersonalInfo
  * 13. eventPronoun
- * 14. eventMetOrMeita
+ * 14. eventMetOrMeta
  * 15. shiftId
  * 16. shiftEventDate
  * 17. shiftTime
@@ -373,7 +373,7 @@ function buildArchiveRow_(archiveKey, insertedAt, event, shift, volunteerShift, 
     event.endTime,                       // 11
     event.personalInfo,                  // 12
     event.pronoun,                       // 13
-    event.metOrMeita,                    // 14
+    event.metOrMeta,                    // 14
     shift.shiftId,                       // 15
     shift.eventDate,                     // 16
     shift.shiftTime,                     // 17

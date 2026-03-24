@@ -187,7 +187,7 @@ function createHourlyShifts_(sheetInputs, eventData) {
       startTimeEpoch: currentStart.getTime(),
       endTimeEpoch: currentEnd.getTime(),
       pronoun: eventData.pronoun,
-      metOrMeita: eventData.metOrMeita,
+      metOrMeta: eventData.metOrMeta,
       personalInfo: eventData.personalInfo,
       eventToken: eventData.token
     });
@@ -227,7 +227,7 @@ function syncShiftsToSheet(sheetInputs, allNewShifts) {
       shift.startTimeEpoch,     // 7 - Start Epoch
       shift.endTimeEpoch,       // 8 - End Epoch
       shift.pronoun,            // 9 - Pronoun
-      shift.metOrMeita,         // 10 - Met or Meita
+      shift.metOrMeta,         // 10 - Met or Meta
       shift.personalInfo,       // 11 - Personal Info
       shift.eventToken          // 12 - Event Token
     ]);
@@ -245,7 +245,7 @@ function syncShiftsToSheet(sheetInputs, allNewShifts) {
         'Start Epoch',        // 7
         'End Epoch',          // 8
         'Pronoun',            // 9
-        'Met or Meita',       // 10
+        'Met or Meta',       // 10
         'Personal Info',      // 11
         'Event Token'         // 12 
       ]);
@@ -277,7 +277,7 @@ const headerToObjectKey = {
   "Start Epoch": "startTimeEpoch",
   "End Epoch": "endTimeEpoch",
   "Pronoun": "pronoun",
-  "Met-or-Meita": "metOrMeita",
+  "Met-or-Meta": "metOrMeta",
   "Personal Information": "personalInfo",
   "Event Token" : "eventToken"
 };

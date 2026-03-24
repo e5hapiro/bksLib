@@ -78,7 +78,7 @@ Dear ${person.firstName} ${person.lastName},
 
 Baruch Dayan Ha'Emet. We sadly notify you of the death of ${event.deceasedName}.
 
-${event.pronoun} ${event.metOrMeita} is at ${event.locationName} (Address: ${fullAddress}).
+${event.pronoun} ${event.metOrMeta} is at ${event.locationName} (Address: ${fullAddress}).
 
 Shmira will start on ${startDateTimeStr} and is scheduled to end for the funeral on ${endDateTimeStr}.
 
