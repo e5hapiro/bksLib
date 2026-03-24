@@ -5,8 +5,8 @@
  * Common functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
  * -----------------------------------------------------------------
  * _common_functions.js
- *  Version: 1.0.7 
- *  Last updated: 2026-01-19
+ *  Version: 1.0.8 
+ *  Last updated: 2026-01-26
  * 
  * CHANGELOG v1.0.1:
  *   - Added enhanced error handling and logging to addToken.
@@ -17,11 +17,12 @@
  *   - Fixed bug in usage of DEBUG
  *   v1.0.7:
  *   - Fixed formattedDateAndTime which required input of separate date and time
+ *   v1.0.8:
+ *   - Fixed addToken so that a token only gets added if one doesn't already previously exist
  *
  * Utility functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
  * -----------------------------------------------------------------
  */
-
 
 /**
  * Working around limitations of fixed web AppUrl
@@ -32,32 +33,70 @@ function getWebAppUrl() {
   return webAppUrl
 }
 
+/**
+ * Providing a common sheetInputs array for all bck projects
+ */
+
+function getSheetInputs() {
+
+  const sheetInputs = 
+  { DEBUG: true,
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwPMxfcwhs096lRUxXD1m0mRFQG6a-n3gofTNaS9wMbB8JdHIHAvLhaWY4pwSTOxGie/exec',
+    SPREADSHEET_ID: '1cCouQRRpEN0nUhN45m14_z3oaONo7HHgwyfYDkcu2mw',
+    EVENT_FORM_RESPONSES: 'Form Responses 1',
+    SHIFTS_MASTER_SHEET: 'Shifts Master',
+    VOLUNTEER_LIST_SHEET: 'Volunteer Shifts',
+    LATEST_EVENTS: '_view_active_events',
+    LATEST_MASTER: '_view_active_master',
+    LATEST_SHIFTS: '_view_active_shifts',
+    GUESTS_SHEET: 'Guests',
+    MEMBERS_SHEET: 'Members',
+    LOCATIONS_SHEET: 'Locations',
+    EVENT_MAP: 'Event Map',
+    ARCHIVE_EVENT_MAP: 'Archive Event Map',
+    ARCHIVE_HISTORICAL: 'Historical Archive',
+    ARCHIVE_HISTORICAL_INDEX: 'Historical Archive Index',
+    TOKEN_COLUMN_NUMBER: 12 };
+
+  return sheetInputs;
+
+}
 
 
 /**
- * Adds a unique token value (UUID) to the specified column in the row that triggered the event.
- * Only works if columnNumber is provided.
- * Logs success or detailed error for debugging.
- * 
- * @function
+ * Adds a unique token value (UUID) to the specified column in the row that triggered the event,
+ * but only if the token cell is currently empty (so edits don't get a new token).
+ *
  * @param {Object} e - The event data object from a Google Sheets trigger.
  * @param {number} columnNumber - The target column number to receive the token.
  */
 function addToken(e, columnNumber) {
-  if (columnNumber) {
-    try {
-      var sheet = e.range.getSheet();
-      var row = e.range.getRow();
+  if (!columnNumber) {
+    Logger.log('addToken failed: no column provided');
+    return;
+  }
+
+  try {
+    var sheet = e.range.getSheet();
+    var row = e.range.getRow();
+    var tokenCell = sheet.getRange(row, columnNumber);
+    var existing = tokenCell.getValue();
+
+    // Only generate a new UUID if there is no existing token
+    if (!existing) {
       var uuid = Utilities.getUuid();
-      sheet.getRange(row, columnNumber).setValue(uuid);
-      Logger.log('Token added successfully for row: ' + row + ' column:' + columnNumber);
-    } catch (error) {
-      // Stores detailed information for easier debugging
-      Logger.log('addToken failed for row: ' + (e && e.range ? e.range.getRow() : 'unknown') + ', error: ' + error.toString());
+      tokenCell.setValue(uuid);
+      Logger.log('Token added successfully for row: ' + row + ' column: ' + columnNumber);
+    } else {
+      Logger.log('Token already exists for row: ' + row + ' column: ' + columnNumber + ' value: ' + existing);
     }
-    Logger.log('addToken failed no column provided ');
+
+  } catch (error) {
+    Logger.log('addToken failed for row: ' + (e && e.range ? e.range.getRow() : 'unknown') +
+               ', error: ' + error.toString());
   }
 }
+
 
 /**
  * Determines whether a form submission/event represents an "update" condition.

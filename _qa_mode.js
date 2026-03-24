@@ -5,8 +5,10 @@
 * QA mode utilized to debug the library
 * -----------------------------------------------------------------
 * _common_functions.js
-Version: 1.0.6 * Last updated: 2025-11-12
+Version: 1.0.7 * Last updated: 2026-03-23
  * 
+ * CHANGELOG v1.0.7:
+ *   - Added Decedents
  * CHANGELOG v1.0.6:
  *   - Fixed bug in usage of DEBUG
  *
@@ -19,9 +21,10 @@ Version: 1.0.6 * Last updated: 2025-11-12
  */
 function QA_bootstrap() {
 
-  try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
+  //try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
   //try { QA_archiveUpdates(QA_configProperties()); Logger.log('QA_archiveUpdates: done'); } catch (e) { Logger.log('QA_archiveUpdates error: ' + e.message); }
 
+  try { QA_getDecedents(QA_configProperties()); Logger.log('QA_getDecedents: done'); } catch (e) { Logger.log('QA_getDecedents error: ' + e.message); }
   //try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
     
   //try { QA_triggerVolunteerShiftRemoval(QA_configProperties()); Logger.log('QA_triggerVolunteerShiftRemoval: done'); } catch (e) { Logger.log('QA_triggerVolunteerShiftRemoval error: ' + e.message); }
@@ -50,6 +53,12 @@ function QA_getShifts(sheetInputs){
   const nameOnly = false;
 
   getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly)
+
+}
+
+function QA_getDecedents(sheetInputs){
+
+  getDecedents(sheetInputs);
 
 }
 
@@ -163,24 +172,7 @@ function QA_configProperties() {
   const webAppUrl = 
   "https://script.google.com/macros/s/AKfycbyqS-grJJ9NU-YctOP5rYCCFO6Lj6vhUPJieXK_R-MzsgrYuJE/exec"
 
-  const sheetInputs = 
-  { DEBUG: true,
-    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwPMxfcwhs096lRUxXD1m0mRFQG6a-n3gofTNaS9wMbB8JdHIHAvLhaWY4pwSTOxGie/exec',
-    SPREADSHEET_ID: '1cCouQRRpEN0nUhN45m14_z3oaONo7HHgwyfYDkcu2mw',
-    EVENT_FORM_RESPONSES: 'Form Responses 1',
-    SHIFTS_MASTER_SHEET: 'Shifts Master',
-    VOLUNTEER_LIST_SHEET: 'Volunteer Shifts',
-    LATEST_EVENTS: '_view_active_events',
-    LATEST_MASTER: '_view_active_master',
-    LATEST_SHIFTS: '_view_active_shifts',
-    GUESTS_SHEET: 'Guests',
-    MEMBERS_SHEET: 'Members',
-    LOCATIONS_SHEET: 'Locations',
-    EVENT_MAP: 'Event Map',
-    ARCHIVE_EVENT_MAP: 'Archive Event Map',
-    ARCHIVE_HISTORICAL: 'Historical Archive',
-    ARCHIVE_HISTORICAL_INDEX: 'Historical Archive Index',
-    TOKEN_COLUMN_NUMBER: 12 };
+  const sheetInputs = getSheetInputs();
 
   return sheetInputs;
 
