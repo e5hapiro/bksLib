@@ -5,8 +5,8 @@
  * Event Updates
  * -----------------------------------------------------------------
  * _update_events.js
- * Version: 1.0.8 
- * Last updated: 2026-01-19
+ * Version: 1.0.9 
+ * Last updated: 2026-03-24
  * 
  * CHANGELOG v1.0.1:
  *   - Initial implementation of updateEvents_.
@@ -21,6 +21,8 @@
  *   v1.0.8:
  *   - QA Logger bug, was not including DEBUG so defaulting to false
  *   - Included try / catch for error logging when debug is true
+ *   v1.0.9:
+ *   - Implemented new guest and member database columns
  * -----------------------------------------------------------------
  */
 
@@ -98,9 +100,9 @@ function updateEventMap(sheetInputs) {
 /**
  * Retrieves the events data from the events sheet.
  *  *
- * Expected headers (second row): Timestamp, Email Address, Deceased Name, Location,
+ * Expected headers (second row): REGISTRATION_DATE, PRIMARY EMAIL, Deceased Name, Location,
  * Start Date, Start Time, End Date, End Time, Personal Information,
- * Pronoun, Met-or-Meta, Token.
+ * Pronoun, Met or Meta, Token.
  *
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The events sheet.
  * @returns {Array<Object>} The events data.
@@ -137,7 +139,7 @@ function getEvents(sheet) {
         endTime: row[idx['End Time']],
         personalInfo: row[idx['Personal Information']],
         pronoun: row[idx['Pronoun']],
-        metOrMeta: row[idx['Met-or-Meta']],
+        metOrMeta: row[idx['Met or Meta']],
         token: row[idx['Token']],
         id: row[idx['Token']]
       };
@@ -161,50 +163,38 @@ function getApprovedGuests(sheet) {
   var idx = {};
   headers.forEach(function(h, i) { idx[h] = i; });
 
-  // Enforce required Approvals column
-  if (idx['Approvals'] === undefined) {
-    throw new Error("Required column 'Approvals' is missing from the guests sheet.");
-  }
-
   // Enforce required Token column
-  if (idx['Token'] === undefined) {
-    throw new Error("Required column 'Token' is missing from the guests sheet.");
+  if (idx['TOKEN'] === undefined) {
+    throw new Error("Required column 'TOKEN' is missing from the guests sheet.");
   }
 
   return data.slice(1)
-    .filter(function(row) {
-      var approval = (row[idx['Approvals']] || "").toString().trim().toLowerCase();
-      return approval === "yes" || approval === "true";
-    })
     .map(function(row) {
       return {
-        timestamp: row[idx['Timestamp']],
-        email: row[idx['Email Address']],
-        firstName: row[idx['First Name']],
-        lastName: row[idx['Last Name']],
-        address: row[idx['Address']],
-        city: row[idx['City']],
-        state: row[idx['State']],
-        zip: row[idx['Zip']],
-        phone: row[idx['Phone']],
-        canText: row[idx['Can we text you at the above phone number?']],
-        names: (row[idx['Name of Deceased']] || "")
+        timestamp: row[idx['REGISTRATION_DATE']],
+        email: row[idx['PRIMARY EMAIL']],
+        firstName: row[idx['FIRST NAME']],
+        lastName: row[idx['LAST NAME']],
+        address: row[idx['ADDRESS']],
+        city: row[idx['CITY']],
+        state: row[idx['STATE']],
+        zip: row[idx['ZIP']],
+        phone: row[idx['PRIMARY MOBILE PHONE']],
+        canText: row[idx['COMMUNICATION PREFERENCES']],
+        names: (row[idx['DECEASED_NAME']] || "")
           .toString()
           .split(',')
           .map(function(n) { return n.trim().toLowerCase(); }),
-        relationship: row[idx['Relationship to Deceased']],
-        over18: row[idx['Are you over 18 years old?']],
-        sitAlone: row[idx["To sit shmira alone with the Boulder Chevra Kadisha, you must be over 18 years old. If you are under 18 years old, you can sit shmira with a Boulder Chevra Kadisha Member or a parent/guardian. If you will sit shmira with a parent or guardian, have them fill out the form. If you would like to be matched up with a Member of the Boulder Chevra Kadisha, you can continue to complete the form."]],
-        canSitDuringBusiness: row[idx["Are you able to sit shmira during the mortuary's normal business hours? (Business hours are Monday through Friday 9am - 5pm)"]],
-        sitAfterHours: row[idx["To sit shmira alone after business hours of the mortuary, you must be a Boulder Chevra Kadisha Member. If you are not a member and still want to sit shmira and you are only able to sit shmira outside of regular business hours, we can match you with a member. Would you like to discuss sitting shmira with a Boulder Chevra Kadisha Member?"]],
-        affiliation: row[idx["What is your affiliation? (The Boulder Chevra Kadisha is a community wide chevra kadisha. We serve all Jews in Boulder County - affiliated of not.)"]],
-        synagogue: row[idx['Name, City and State of synagogue.']],
-        onMailingList: row[idx['Do you want to be on our mailing list for events and training?']],
-        agreement: row[idx['By submitting this application, I certify the information is true and accurate and I agree with the terms and conditions of sitting shmira with the Boulder Chevra Kadisha.']],
-        token: row[idx['Token']],
-        approvals: row[idx['Approvals']]
+        relationship: row[idx['RELATIONSHIP_TO_DECEASED']],
+        over18: row[idx['AGE_18_PLUS']],
+        affiliation: row[idx["AFFILIATION"]],
+        synagogue: row[idx['SYNAGOGUE']],
+        agreement: row[idx['CERTIFY']],
+        token: row[idx['TOKEN']],
+        approvals: true // Hardcoded to true as requested
       };
     });
+
 }
 
 /**
@@ -224,30 +214,20 @@ function getApprovedMembers(sheet) {
   var idx = {};
   headers.forEach(function(h, i) { idx[h] = i; });
 
-  // Enforce required Approvals column
-  if (idx['Approvals'] === undefined) {
-    throw new Error("Required column 'Approvals' is missing from the members sheet.");
-  }
-
   // Enforce required Token column
-  if (idx['Token'] === undefined) {
-    throw new Error("Required column 'Token' is missing from the members sheet.");
+  if (idx['TOKEN'] === undefined) {
+    throw new Error("Required column 'TOKEN' is missing from the members sheet.");
   }
-
 
   return data.slice(1)
-    .filter(function(row) {
-      var approval = String(row[idx['Approvals']] || '').trim().toLowerCase();
-      return approval === 'yes' || approval === 'true';
-    })
     .map(function(row) {
       return {
-        timestamp: row[idx['Timestamp']],
-        email: row[idx['Email Address']],
-        firstName: row[idx['First Name']],
-        lastName: row[idx['Last Name']],
-        phone: row[idx['Phone']],
-        token: row[idx['Token']]
+        timestamp: row[idx['REGISTRATION_DATE']],
+        email: row[idx['PRIMARY EMAIL']],
+        firstName: row[idx['FIRST NAME']],
+        lastName: row[idx['LAST NAME']],
+        phone: row[idx['PRIMARY MOBILE PHONE']],
+        token: row[idx['TOKEN']]
       };
     });
 }

@@ -33,10 +33,15 @@
  */
 function mailMappings(sheetInputs, events, guests, members, locations, existingMapRows) {
 
+  function isValidEmail(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  }
+
   if (typeof sheetInputs.DEBUG === 'undefined') {
-  console.log ("DEBUG is undefined");
-  return;
-}
+    console.log ("DEBUG is undefined");
+    return;
+  }
 
   const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
   const mapSheet = ss.getSheetByName(sheetInputs.EVENT_MAP);
@@ -56,6 +61,13 @@ function mailMappings(sheetInputs, events, guests, members, locations, existingM
 
       if (!event || !person) {
         QA_Logging(`Skipping mapping (eventId: ${eventId}, personId: ${personId}) - not found.`, true);
+        return;
+      }
+
+      const validEmail = isValidEmail(person.email);
+
+      if (!validEmail){
+        QA_Logging(`Skipping email as email is invalid`); 
         return;
       }
 

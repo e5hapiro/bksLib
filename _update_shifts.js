@@ -277,7 +277,7 @@ const headerToObjectKey = {
   "Start Epoch": "startTimeEpoch",
   "End Epoch": "endTimeEpoch",
   "Pronoun": "pronoun",
-  "Met-or-Meta": "metOrMeta",
+  "Met or Meta": "metOrMeta",
   "Personal Information": "personalInfo",
   "Event Token" : "eventToken"
 };

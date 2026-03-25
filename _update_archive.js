@@ -184,7 +184,7 @@ function updateArchive(sheetInputs) {
  *
  * Expected headers: Shift ID, Deceased Name, Location, Event Date, Shift Time,
  * Max Volunteers, Current Volunteers, Start Epoch, End Epoch, Pronoun,
- * Met-or-Meta, Personal Information, Event Token.
+ * Met or Meta, Personal Information, Event Token.
  *
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The master shifts sheet.
  * @returns {Array<Object>} The master shifts data.
@@ -210,7 +210,7 @@ function getMasterShifts_(sheet) {
       startEpoch: Number(row[idx['Start Epoch']]) || 0,
       endEpoch: Number(row[idx['End Epoch']]) || 0,
       pronoun: row[idx['Pronoun']],
-      metOrMeta: row[idx['Met-or-Meta']],
+      metOrMeta: row[idx['Met or Meta']],
       personalInfo: row[idx['Personal Information']],
       eventToken: row[idx['Event Token']]
     };

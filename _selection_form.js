@@ -4,8 +4,8 @@
  * Chevra Kadisha Selection Form Handler
  * -----------------------------------------------------------------
  * _selection_form.js
- * Version: 1.0.11 
- * Last updated: 2025-01-05
+ * Version: 1.0.12 
+ * Last updated: 2026-03-24
  * 
  * CHANGELOG v1.0.3:
  *   - Initial implementation of Selection Form.
@@ -22,6 +22,8 @@
  *   - Fixed bug that where only members were getting confirmation emails
  *   v1.0.11
  *   - Fixed bug where event shifts were skipped because the header was not looking in row 2
+ *   v1.0.12
+ *   - Implement new member and guest database
  * -----------------------------------------------------------------
  */
 
@@ -169,24 +171,24 @@ function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
 
-      if (normalizeToken(row[idx['Token']]) === normalizeToken(token)) {
+      if (normalizeToken(row[idx['TOKEN']]) === normalizeToken(token)) {
 
         // For bootstrap, only need the name and not all of the other data
         if (nameOnly) {
           const info = {
-            firstName: getSafeValue(row, idx, 'First Name'),
-            lastName: getSafeValue(row, idx, 'Last Name'),
-            email: getSafeValue(row, idx, 'Email Address'),
+            firstName: getSafeValue(row, idx, 'FIRST NAME'),
+            lastName: getSafeValue(row, idx, 'LAST NAME'),
+            email: getSafeValue(row, idx, 'PRIMARY EMAIL'),
             events: null
           };
           return info;
         } else {
           const info = {
-            timestamp: getSafeValue(row, idx, 'Timestamp'),
-            email: getSafeValue(row, idx, 'Email Address'),
-            firstName: getSafeValue(row, idx, 'First Name'),
-            lastName: getSafeValue(row, idx, 'Last Name'),
-            token: getSafeValue(row, idx, 'Token'),
+            timestamp: getSafeValue(row, idx, 'REGISTRATION_DATE'),
+            email: getSafeValue(row, idx, 'PRIMARY EMAIL'),
+            firstName: getSafeValue(row, idx, 'FIRST NAME'),
+            lastName: getSafeValue(row, idx, 'LAST NAME'),
+            token: getSafeValue(row, idx, 'TOKEN'),
             events: getEventsForToken_(sheetInputs, token, shiftFlags),
             rowIndex: i + 1 // Sheet row (1-based)
           };
@@ -194,10 +196,10 @@ function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
           /*
           // Full set of information for debugging only
           const info = {
-            timestamp: getSafeValue(row, idx, 'Timestamp'),
-            email: getSafeValue(row, idx, 'Email Address'),
-            firstName: getSafeValue(row, idx, 'First Name'),
-            lastName: getSafeValue(row, idx, 'Last Name'),
+            timestamp: getSafeValue(row, idx, 'REGISTRATION_DATE'),
+            email: getSafeValue(row, idx, 'PRIMARY EMAIL'),
+            firstName: getSafeValue(row, idx, 'FIRST NAME'),
+            lastName: getSafeValue(row, idx, 'LAST NAME'),
             address: getSafeValue(row, idx, 'Address'),
             city: getSafeValue(row, idx, 'City'),
             state: getSafeValue(row, idx, 'State'),
@@ -275,15 +277,15 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (normalizeToken(row[idx['Token']]) === normalizeToken(token)) {
+      if (normalizeToken(row[idx['TOKEN']]) === normalizeToken(token)) {
 
         // For bootstrap, only need the name and not all of the other data
         if (nameOnly) {
 
           info = {
-            firstName: getSafeValue(row, idx, 'First Name'),
-            lastName: getSafeValue(row, idx, 'Last Name'),
-            email: getSafeValue(row, idx, 'Email Address'),
+            firstName: getSafeValue(row, idx, 'FIRST NAME'),
+            lastName: getSafeValue(row, idx, 'LAST NAME'),
+            email: getSafeValue(row, idx, 'PRIMARY EMAIL'),
             events: null
           }
           return info;
@@ -292,11 +294,11 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
         else {
 
           info = {
-            timestamp: getSafeValue(row, idx, 'Timestamp'),
-            email: getSafeValue(row, idx, 'Email Address'),
-            firstName: getSafeValue(row, idx, 'First Name'),
-            lastName: getSafeValue(row, idx, 'Last Name'),
-            token: getSafeValue(row, idx, 'Token'),
+            timestamp: getSafeValue(row, idx, 'REGISTRATION_DATE'),
+            email: getSafeValue(row, idx, 'PRIMARY EMAIL'),
+            firstName: getSafeValue(row, idx, 'FIRST NAME'),
+            lastName: getSafeValue(row, idx, 'LAST NAME'),
+            token: getSafeValue(row, idx, 'TOKEN'),
             events: getEventsForToken_(sheetInputs, token, shiftFlags),
             rowIndex: i + 1 // Sheet row (1-based)
           };
@@ -305,10 +307,10 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
           // Full set of information for debugging only
           /*
           info = {
-            timestamp: getSafeValue(row, idx, 'Timestamp'),
-            email: getSafeValue(row, idx, 'Email Address'),
-            firstName: getSafeValue(row, idx, 'First Name'),
-            lastName: getSafeValue(row, idx, 'Last Name'),
+            timestamp: getSafeValue(row, idx, 'REGISTRATION_DATE'),
+            email: getSafeValue(row, idx, 'PRIMARY EMAIL'),
+            firstName: getSafeValue(row, idx, 'FIRST NAME'),
+            lastName: getSafeValue(row, idx, 'LAST NAME'),
             address: getSafeValue(row, idx, 'Address'),
             city: getSafeValue(row, idx, 'City'),
             state: getSafeValue(row, idx, 'State'),
@@ -328,7 +330,7 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
             synagogue: getSafeValue(row, idx, 'Name, City and State of synagogue.'),
             onMailingList: getSafeValue(row, idx, 'Do you want to be on our mailing list for events and training?'),
             agreement: getSafeValue(row, idx, 'By submitting this application, I certify the information is true and accurate and I agree with the terms and conditions of sitting shmira with the Boulder Chevra Kadisha.'),
-            token: getSafeValue(row, idx, 'Token'),
+            token: getSafeValue(row, idx, 'TOKEN'),
             approvals: getSafeValue(row, idx, 'Approvals'),
             events: getEventsForToken_(sheetInputs, token),
             rowIndex: i + 1 // Sheet row (1-based)
@@ -744,7 +746,7 @@ function setVolunteerShifts(sheetInputs, selectedShiftIds, volunteerName, volunt
     const shiftIdIdx = headers.indexOf("Shift ID");
     const volunteerTokenIdx = headers.indexOf("Volunteer Token");
 
-    // To ensure idempotency, collect all assigned (Shift ID, Volunteer Token) pairs
+    // To ensure idempotency, collect all assigned (Shift ID, Volunteer TOKEN) pairs
     const assigned = new Set();
     for (let i = 1; i < data.length; i++) {
       const row = data[i];

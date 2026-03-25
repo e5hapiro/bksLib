@@ -39,9 +39,11 @@ function getWebAppUrl() {
 
 function getSheetInputs() {
 
+  const webAppUrl = getWebAppUrl();
+
   const sheetInputs = 
   { DEBUG: true,
-    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwPMxfcwhs096lRUxXD1m0mRFQG6a-n3gofTNaS9wMbB8JdHIHAvLhaWY4pwSTOxGie/exec',
+    SCRIPT_URL: webAppUrl,
     SPREADSHEET_ID: '1cCouQRRpEN0nUhN45m14_z3oaONo7HHgwyfYDkcu2mw',
     EVENT_FORM_RESPONSES: 'Form Responses 1',
     SHIFTS_MASTER_SHEET: 'Shifts Master',
