@@ -21,10 +21,10 @@ Version: 1.0.7 * Last updated: 2026-03-23
  */
 function QA_bootstrap() {
 
-  try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
+  //try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
   //try { QA_archiveUpdates(QA_configProperties()); Logger.log('QA_archiveUpdates: done'); } catch (e) { Logger.log('QA_archiveUpdates error: ' + e.message); }
 
-  //try { QA_getDecedents(QA_configProperties()); Logger.log('QA_getDecedents: done'); } catch (e) { Logger.log('QA_getDecedents error: ' + e.message); }
+  try { QA_getDecedents(QA_configProperties()); Logger.log('QA_getDecedents: done'); } catch (e) { Logger.log('QA_getDecedents error: ' + e.message); }
   //try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
     
   //try { QA_triggerVolunteerShiftRemoval(QA_configProperties()); Logger.log('QA_triggerVolunteerShiftRemoval: done'); } catch (e) { Logger.log('QA_triggerVolunteerShiftRemoval error: ' + e.message); }
