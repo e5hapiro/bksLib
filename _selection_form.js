@@ -4,8 +4,8 @@
  * Chevra Kadisha Selection Form Handler
  * -----------------------------------------------------------------
  * _selection_form.js
- * Version: 1.0.12 
- * Last updated: 2026-03-24
+ * Version: 1.0.13 
+ * Last updated: 2026-03-25
  * 
  * CHANGELOG v1.0.3:
  *   - Initial implementation of Selection Form.
@@ -24,6 +24,8 @@
  *   - Fixed bug where event shifts were skipped because the header was not looking in row 2
  *   v1.0.12
  *   - Implement new member and guest database
+ *   v1.0.13
+ *   - New logic limits available shifts after business hours to members
  * -----------------------------------------------------------------
  */
 
@@ -183,13 +185,16 @@ function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
           };
           return info;
         } else {
+
+          const isMember = true;
+
           const info = {
             timestamp: getSafeValue(row, idx, 'REGISTRATION_DATE'),
             email: getSafeValue(row, idx, 'PRIMARY EMAIL'),
             firstName: getSafeValue(row, idx, 'FIRST NAME'),
             lastName: getSafeValue(row, idx, 'LAST NAME'),
             token: getSafeValue(row, idx, 'TOKEN'),
-            events: getEventsForToken_(sheetInputs, token, shiftFlags),
+            events: getEventsForToken_(sheetInputs, token, shiftFlags, isMember),
             rowIndex: i + 1 // Sheet row (1-based)
           };
 
@@ -225,7 +230,7 @@ function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
             notes: getSafeValue(row, idx, 'Is there anything you want us to know about you, your skills or past chevra kadisha experience?'),
             token: getSafeValue(row, idx, 'Token'),
             approvals: getSafeValue(row, idx, 'Approvals'),
-            events: getEventsForToken_(sheetInputs, token),
+            events: getEventsForToken_(sheetInputs, token, 1, true),
             rowIndex: i + 1 // Sheet row (1-based)
           };
           */
@@ -293,13 +298,15 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
         } 
         else {
 
+          const isMember = false;
+
           info = {
             timestamp: getSafeValue(row, idx, 'REGISTRATION_DATE'),
             email: getSafeValue(row, idx, 'PRIMARY EMAIL'),
             firstName: getSafeValue(row, idx, 'FIRST NAME'),
             lastName: getSafeValue(row, idx, 'LAST NAME'),
             token: getSafeValue(row, idx, 'TOKEN'),
-            events: getEventsForToken_(sheetInputs, token, shiftFlags),
+            events: getEventsForToken_(sheetInputs, token, shiftFlags, isMember),
             rowIndex: i + 1 // Sheet row (1-based)
           };
           
@@ -332,7 +339,7 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
             agreement: getSafeValue(row, idx, 'By submitting this application, I certify the information is true and accurate and I agree with the terms and conditions of sitting shmira with the Boulder Chevra Kadisha.'),
             token: getSafeValue(row, idx, 'TOKEN'),
             approvals: getSafeValue(row, idx, 'Approvals'),
-            events: getEventsForToken_(sheetInputs, token),
+            events: getEventsForToken_(sheetInputs, token, 1, false),
             rowIndex: i + 1 // Sheet row (1-based)
           };
           */
@@ -351,9 +358,25 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
   }
 }
 
-function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {
-  Logger.log("getEventsForToken_ START, guestOrMemberToken=%s, shiftFlags=%s", guestOrMemberToken, shiftFlags);
-  console.log("getEventsForToken_ START", { guestOrMemberToken, shiftFlags });
+/**
+ * Returns future events for a given guest/member token.
+ * Optionally augments each event with shift information, and passes
+ * the isMember flag down so shift availability can be filtered.
+ *
+ * @param {Object} sheetInputs Configuration object with sheet IDs and names.
+ * @param {string} guestOrMemberToken Token that identifies the guest or member.
+ * @param {number} [shiftFlags=0] Bit flags indicating which shift data to load.
+ * @param {boolean} isMember Whether this token represents a member (affects shift filtering).
+ * @returns {Object[]} Array of event objects, optionally with shift data attached.
+ */
+function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0, isMember) {
+  Logger.log(
+    "getEventsForToken_ START, guestOrMemberToken=%s, shiftFlags=%s, isMember=%s",
+    guestOrMemberToken,
+    shiftFlags,
+    isMember
+  );
+  console.log("getEventsForToken_ START", { guestOrMemberToken, shiftFlags, isMember });
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
     console.log("DEBUG is undefined");
@@ -389,7 +412,7 @@ function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {
   const events = [];
   const now = new Date();
 
-  const tz = Session.getScriptTimeZone(); // for Utilities.formatDate [web:94]
+  const tz = Session.getScriptTimeZone(); // for Utilities.formatDate [web:15]
 
   for (let i = 1; i < eventData.length; i++) {
     if (matchedEventTokens.indexOf(eventData[i][eventTokenIdx]) > -1) {
@@ -453,7 +476,8 @@ function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {
       const eventToken = eventObj["Token"];
 
       if ((shiftFlags & SHIFT_FLAGS.AVAILABLE) !== 0) {
-        eventObj.availableShifts = getAvailableShiftsForEvent(sheetInputs, eventToken);
+        // Pass isMember through so getAvailableShiftsForEvent can filter times
+        eventObj.availableShifts = getAvailableShiftsForEvent(sheetInputs, eventToken, isMember);
       } else {
         eventObj.availableShifts = null;
       }
@@ -477,9 +501,22 @@ function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0) {
   console.log("getEventsForToken_ END, events length:", events.length);
   return events;
 }
-function getAvailableShiftsForEvent(sheetInputs, eventToken) {
-  Logger.log("getAvailableShiftsForEvent START, eventToken=%s", eventToken);
-  console.log("getAvailableShiftsForEvent START", { eventToken });
+
+
+/**
+ * Returns available (unclaimed and not yet ended) shifts for an event.
+ * If isMember is true, all available shifts are returned.
+ * If isMember is false, only shifts whose start time is between 9:00 and 17:00 (5 PM)
+ * in the script's time zone are returned.
+ *
+ * @param {Object} sheetInputs Configuration object with sheet IDs and names.
+ * @param {string} eventToken Token that identifies the event whose shifts to fetch.
+ * @param {boolean} isMember Whether the caller is a member; determines time filtering.
+ * @returns {Object[]} Array of available shift objects.
+ */
+function getAvailableShiftsForEvent(sheetInputs, eventToken, isMember) {
+  Logger.log("getAvailableShiftsForEvent START, eventToken=%s, isMember=%s", eventToken, isMember);
+  console.log("getAvailableShiftsForEvent START", { eventToken, isMember });
 
   if (typeof sheetInputs.DEBUG === "undefined") {
     console.log("DEBUG is undefined");
@@ -518,7 +555,7 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken) {
   const keepIdxs = keepColumns.map(header => shiftsHeaders.indexOf(header));
 
   const now = Date.now();
-  const tz = Session.getScriptTimeZone(); // for formatting [web:12][web:94]
+  const tz = Session.getScriptTimeZone(); // for formatting
 
   let eventShifts = [];
   for (let i = 1; i < shiftsData.length; i++) {
@@ -536,15 +573,23 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken) {
     // Only skip if shift end is before now
     if (now > endEpoch) continue;
 
+    const startDateObj = new Date(startEpoch);
+    const endDateObj   = new Date(endEpoch);
+
+    // If non-member, only allow shifts starting between 9:00 and 17:00 (5 PM)
+    if (!isMember) {
+      const startHour = startDateObj.getHours(); // 0–23 local time [web:3][web:10]
+      if (startHour < 9 || startHour >= 17) {
+        continue;
+      }
+    }
+
     let shiftObj = {};
     for (let k = 0; k < keepColumns.length; k++) {
       shiftObj[keepColumns[k]] = row[keepIdxs[k]];
     }
 
-    // NEW: human-friendly display string: "Dec 22, 2025 9:00 PM - 10:00 PM"
-    const startDateObj = new Date(startEpoch);
-    const endDateObj   = new Date(endEpoch);
-
+    // human-friendly display string: "Dec 22, 2025 9:00 PM - 10:00 PM"
     if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime())) {
       const datePart      = Utilities.formatDate(startDateObj, tz, "MMM d, yyyy");
       const startTimePart = Utilities.formatDate(startDateObj, tz, "h:mm a");
@@ -579,6 +624,7 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken) {
 
   return availableShifts;
 }
+
 
 
 
