@@ -4,8 +4,8 @@
  * Chevra Kadisha Selection Form Handler
  * -----------------------------------------------------------------
  * _selection_form.js
- * Version: 1.0.13 
- * Last updated: 2026-03-25
+ * Version: 1.0.15
+ * Last updated: 2026-03-26
  * 
  * CHANGELOG v1.0.3:
  *   - Initial implementation of Selection Form.
@@ -26,6 +26,10 @@
  *   - Implement new member and guest database
  *   v1.0.13
  *   - New logic limits available shifts after business hours to members
+ *   v1.0.14
+ *   - isMember logic is now passed down all of the way
+ *   v1.0.15
+ *   - Returns guest shifts for all days during business hours
  * -----------------------------------------------------------------
  */
 
@@ -63,7 +67,7 @@ function getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly )
 
     if (isMember) {
 
-      info = getMemberInfoByToken(sheetInputs, volunteerToken, shiftFlags, nameOnly);
+      info = getMemberInfoByToken(sheetInputs, volunteerToken, shiftFlags, nameOnly, isMember);
 
       //logQCVars('Member info', info);
       if (info) {
@@ -93,7 +97,7 @@ function getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly )
       }
     } else if (volunteerToken) {
       
-      info = getGuestInfoByToken(sheetInputs, volunteerToken, shiftFlags, nameOnly );
+      info = getGuestInfoByToken(sheetInputs, volunteerToken, shiftFlags, nameOnly, isMember );
 
       var fullName = info.firstName + " " + info.lastName;
 
@@ -140,7 +144,7 @@ function getShifts(sheetInputs, volunteerToken, isMember, shiftFlags, nameOnly )
 }
 
 
-function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
+function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, isMember) {
   Logger.log("Getting getMemberInfoByToken " + token);
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
@@ -185,8 +189,6 @@ function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
           };
           return info;
         } else {
-
-          const isMember = true;
 
           const info = {
             timestamp: getSafeValue(row, idx, 'REGISTRATION_DATE'),
@@ -250,7 +252,7 @@ function getMemberInfoByToken(sheetInputs, token, shiftFlags , nameOnly, ) {
 
 
 
-function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
+function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, isMember ) {
   Logger.log("Getting getGuestInfoByToken[token]: " + token);
 
   if (typeof sheetInputs.DEBUG === 'undefined') {
@@ -297,8 +299,6 @@ function getGuestInfoByToken(sheetInputs, token, shiftFlags, nameOnly, ) {
 
         } 
         else {
-
-          const isMember = false;
 
           info = {
             timestamp: getSafeValue(row, idx, 'REGISTRATION_DATE'),
@@ -506,8 +506,11 @@ function getEventsForToken_(sheetInputs, guestOrMemberToken, shiftFlags = 0, isM
 /**
  * Returns available (unclaimed and not yet ended) shifts for an event.
  * If isMember is true, all available shifts are returned.
- * If isMember is false, only shifts whose start time is between 9:00 and 17:00 (5 PM)
- * in the script's time zone are returned.
+ * If isMember is false, only shifts that overlap the 9:00–17:00 (5 PM) window
+ * on at least one calendar day of the shift are returned (in the script's time zone).
+ *
+ * CHANGE (v1.0.15): Previously only checked shift *start* time-of-day; now
+ * checks for overlap with 9–17 on *any* day the shift spans.
  *
  * @param {Object} sheetInputs Configuration object with sheet IDs and names.
  * @param {string} eventToken Token that identifies the event whose shifts to fetch.
@@ -576,10 +579,34 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken, isMember) {
     const startDateObj = new Date(startEpoch);
     const endDateObj   = new Date(endEpoch);
 
-    // If non-member, only allow shifts starting between 9:00 and 17:00 (5 PM)
+    // NEW GUEST FILTER: Allow if shift overlaps 9:00–17:00 on ANY day it spans
     if (!isMember) {
-      const startHour = startDateObj.getHours(); // 0–23 local time [web:3][web:10]
-      if (startHour < 9 || startHour >= 17) {
+      const nineAM = 9;
+      const fivePM = 17;
+
+      // Iterate day-by-day between shift start and end
+      let dayCursor = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), startDateObj.getDate());
+      const lastDay = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate());
+
+      let overlapsBusinessHours = false;
+      while (dayCursor <= lastDay && !overlapsBusinessHours) {
+        const windowStart = new Date(dayCursor);
+        const windowEnd   = new Date(dayCursor);
+
+        windowStart.setHours(nineAM, 0, 0, 0);
+        windowEnd.setHours(fivePM, 0, 0, 0);
+
+        const overlapStart = Math.max(startEpoch, windowStart.getTime());
+        const overlapEnd   = Math.min(endEpoch, windowEnd.getTime());
+
+        if (overlapStart < overlapEnd) {
+          overlapsBusinessHours = true;
+        }
+
+        dayCursor.setDate(dayCursor.getDate() + 1);
+      }
+
+      if (!overlapsBusinessHours) {
         continue;
       }
     }
@@ -602,29 +629,10 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken, isMember) {
     eventShifts.push(shiftObj);
   }
 
-  // Find claimed shifts
-  const volunteerData = volunteerShiftsSheet.getDataRange().getValues();
-
-  // First row is reserved in the view, so need to start with row 2 or 1 in Javascript
-  const volunteerHeaders = volunteerData[1];
-  const volunteerShiftIdIdx = volunteerHeaders.indexOf("Shift ID");
-
-  const claimedShiftIds = new Set();
-  for (let i = 1; i < volunteerData.length; i++) {
-    const claimedId = volunteerData[i][volunteerShiftIdIdx];
-    if (claimedId) claimedShiftIds.add(claimedId);
-  }
-
-  let availableShifts;
-  if (eventShifts.length === 0) {
-    availableShifts = [];
-  } else {
-    availableShifts = eventShifts.filter(shift => !claimedShiftIds.has(shift["Shift ID"]));
-  }
-
-  return availableShifts;
+  console.log("getAvailableShiftsForEvent END, found shifts:", eventShifts.length);
+  Logger.log("getAvailableShiftsForEvent END, found %s shifts", eventShifts.length);
+  return eventShifts;
 }
-
 
 
 
@@ -883,260 +891,3 @@ function removeVolunteerShifts(sheetInputs, shiftIds, volunteerName, volunteerTo
   return true;
 }
 
-function sendShiftEmail(sheetInputs, volunteerData, shifts, actionType) {
-  console.log("--- START sendShiftEmail ---");
-
-  if (typeof sheetInputs.DEBUG === 'undefined') {
-    console.log ("DEBUG is undefined");
-    return;
-  }
-
-  const emailAction = actionType === "Addition" ? "added to" : "removed from";
-  const urlParam = volunteerData.isMember ? "m" : "g";
-  const sheetUrl = sheetInputs["SCRIPT_URL"];
-  const personalizedUrl = `${sheetUrl}?${urlParam}=${volunteerData.token}`;
-  const recipientEmail = volunteerData.email;
-
-  const nameOnly = false;
-  var info = "";
-
-  if (volunteerData.isMember === true) {
-    info = getMemberInfoByToken(sheetInputs, volunteerData.token, SHIFT_FLAGS.EVENT, nameOnly  );
-  }
-  else {
-    info = getGuestInfoByToken(sheetInputs, volunteerData.token, SHIFT_FLAGS.EVENT, nameOnly  );
-  }
-
-  const events = info.events || [];
-  const allAvailableShifts = events.flatMap(event => {
-    return (event.eventShifts || []).map(shift => ({
-      ...shift,
-      eventLocation: event.Location,
-      deceasedName: event["Deceased Name"],
-      eventStartDate: event["Start Date"],
-      eventToken: event.Token || event["Token"] || event["Event Token"] || event.Token,
-      eventId: event.Token || event["Token"] || event["Event Token"] || event.Token
-    }));
-  });
-
-  // Filter to only selected shift IDs
-  const matchedShiftDetails = allAvailableShifts.filter(shift => shifts.includes(shift["Shift ID"]));
-
-  // 1. GROUP SHIFTS BY EVENT
-  const groupedByEvent = {};
-  matchedShiftDetails.forEach(shift => {
-    const eventKey = shift.eventId || shift.eventLocation || shift.deceasedName || "Unknown Event";
-    if (!groupedByEvent[eventKey]) {
-      groupedByEvent[eventKey] = {
-        eventLocation: shift.eventLocation,
-        deceasedName: shift.deceasedName,
-        eventStartDate: shift.eventStartDate,
-        shifts: []
-      }
-    }
-    groupedByEvent[eventKey].shifts.push(shift);
-  });
-
-  // 2. BUILD BODY (GROUPED)
-  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  let shiftDetails = '';
-  let totalShifts = 0;
-  for (const eventKey in groupedByEvent) {
-    const event = groupedByEvent[eventKey];
-    let eventDateFormatted = "Date Unknown";
-    if (event.eventStartDate) {
-      const date = new Date(event.eventStartDate);
-      if (!isNaN(date)) {
-        eventDateFormatted = date.toLocaleDateString('en-US', options);
-      }
-    }
-
-    const locations = getLocations(sheetInputs);
-    const fullAddress = getAddressFromLocationName(locations, event.eventLocation);
-
-    shiftDetails += `\nEvent: ${event.deceasedName || "N/A"}\nLocation: ${event.eventLocation}\nAddress: ${fullAddress}\nDate: ${eventDateFormatted}\nShifts:\n`;
-    event.shifts.forEach(shift => {
-      shiftDetails += `  - Time: ${shift["Shift Display"]}\n`;
-      totalShifts++;
-    });
-    shiftDetails += '\n';
-  }
-
-  // 3. COMPOSE EMAIL BODY
-  let body = `
-Dear ${volunteerData.name},
-
-This is an automatic confirmation that your request to be ${emailAction} the following shift${totalShifts > 1 ? 's' : ''} has been processed successfully:
-
-${shiftDetails}
-
-If you need to cancel or change your confirmation, go to your portal link: ${personalizedUrl}.
-
-Thank you for providing this mitzvah.
-`;
-
-  // 4. CHECK BODY SIZE; TRIM IF NECESSARY
-  const MAX_BODY = 20000; // Apps Script body limit is 20,000 chars
-  if (body.length > MAX_BODY) {
-    // Determine how many events/shifts fit
-    let partialBody = `
-Dear ${volunteerData.name},
-
-This is an automatic confirmation that your request to be ${emailAction} the following shift(s) has been processed successfully:
-
-`;
-    let omittedCount = 0;
-    for (const eventKey in groupedByEvent) {
-      if (partialBody.length > MAX_BODY - 500) { // Leave space for note and link
-        omittedCount += groupedByEvent[eventKey].shifts.length;
-        continue;
-      }
-      const event = groupedByEvent[eventKey];
-      let eventDateFormatted = "Date Unknown";
-      if (event.eventStartDate) {
-        const date = new Date(event.eventStartDate);
-        if (!isNaN(date)) {
-          eventDateFormatted = date.toLocaleDateString('en-US', options);
-        }
-      }
-
-      const locations = getLocations(sheetInputs);
-      const fullAddress = getAddressFromLocationName(locations, event.eventLocation);
-      let eventHeader = `Event: ${event.deceasedName || "N/A"}\nLocation: ${event.eventLocation}\nAddress: ${fullAddress}\nDate: ${eventDateFormatted}\nShifts:\n`;
-      let eventShiftsLines = '';
-      event.shifts.forEach(shift => {
-        if ((partialBody.length + eventHeader.length + eventShiftsLines.length + 100) > MAX_BODY - 500) {
-          omittedCount++;
-          return;
-        }
-        eventShiftsLines += `  - Time: ${shift["Shift Display"]}\n`;
-      });
-      if (eventShiftsLines) {
-        partialBody += eventHeader + eventShiftsLines + '\n';
-      }
-    }
-    partialBody += (omittedCount > 0 ? `\n[Note: Some shifts were omitted from this message due to size constraints. All your sign-ups are recorded.]\n` : '');
-    partialBody += `\nIf you need to cancel or change your confirmation, go to your portal link: ${personalizedUrl}.\n\nThank you for providing this mitzvah.\n`;
-    body = partialBody;
-  }
-
-  // 5. SUBJECT
-  // For brevity: list first event, and maybe count of shifts
-  let subject = "Chevra Kadisha Volunteer: Confirmation of Shift " + actionType;
-  if (matchedShiftDetails.length === 1) {
-    subject += `: ${matchedShiftDetails[0]["Shift Display"]} at ${matchedShiftDetails[0].eventLocation}`;
-  } else if (matchedShiftDetails.length > 1) {
-    subject += `: ${matchedShiftDetails.length} shifts`;
-  }
-
-  if (!recipientEmail || !String(recipientEmail).includes('@')) {
-    Logger.log(`Skipping email: Invalid recipient email address: ${recipientEmail}`);
-    return;
-  }
-
- // Only build ICS files when shifts are ADDED
-  let mailOptions = { body: body };
-
-  if (actionType === "Addition") {
-    const icsAttachments = buildIcsAttachmentsForShifts(sheetInputs, groupedByEvent);
-    if (icsAttachments.length > 0) {
-      mailOptions.attachments = icsAttachments;
-    }
-  }
-
-  try {
-    MailApp.sendEmail(recipientEmail, subject, body, mailOptions);
-    Logger.log(`Email sent successfully for ${actionType} to ${recipientEmail}`);
-  } catch (e) {
-    Logger.log(`ERROR sending email for ${actionType}: ${e.toString()}`);
-  }
-
-}
-
-/**
- * Build ICS blobs for all matched shifts.
- * @param {Object} groupedByEvent The object built in sendShiftEmail.
- * @param {Object} sheetInputs For location lookup.
- * @returns {Blob[]} Array of text/calendar blobs.
- */
-function buildIcsAttachmentsForShifts(sheetInputs, groupedByEvent) {
-  const icsAttachments = [];
-  const locations = getLocations(sheetInputs);
-
-  function buildIcsForShift(summary, description, location, dtStart, dtEnd) {
-    function toIcsUtc(dt) {
-      const pad = n => (n < 10 ? '0' + n : '' + n);
-      const y = dt.getUTCFullYear();
-      const m = pad(dt.getUTCMonth() + 1);
-      const d = pad(dt.getUTCDate());
-      const hh = pad(dt.getUTCHours());
-      const mm = pad(dt.getUTCMinutes());
-      const ss = pad(dt.getUTCSeconds());
-      return y + m + d + 'T' + hh + mm + ss + 'Z';
-    }
-
-    const uid = Utilities.getUuid();
-    const dtStamp = toIcsUtc(new Date());
-
-    const ics =
-      'BEGIN:VCALENDAR\r\n' +
-      'PRODID:-//Chevra Kadisha//Volunteer Shifts//EN\r\n' +
-      'VERSION:2.0\r\n' +
-      'METHOD:PUBLISH\r\n' +
-      'BEGIN:VEVENT\r\n' +
-      'UID:' + uid + '\r\n' +
-      'DTSTAMP:' + dtStamp + '\r\n' +
-      'DTSTART:' + toIcsUtc(dtStart) + '\r\n' +
-      'DTEND:' + toIcsUtc(dtEnd) + '\r\n' +
-      'SUMMARY:' + summary + '\r\n' +
-      'DESCRIPTION:' + description + '\r\n' +
-      'LOCATION:' + location + '\r\n' +
-      'END:VEVENT\r\n' +
-      'END:VCALENDAR\r\n';
-
-    return Utilities.newBlob(ics, 'text/calendar', 'shift.ics');
-  }
-
-  function parseTimeOnDate(date, timePart) {
-    const t = String(timePart || '').trim();
-    const d = new Date(date);
-    const match = t.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)/i);
-    if (!match) return null;
-    let hour = parseInt(match[1], 10);
-    const min = match[2] ? parseInt(match[2], 10) : 0;
-    const ampm = match[3].toUpperCase();
-    if (ampm === 'PM' && hour < 12) hour += 12;
-    if (ampm === 'AM' && hour === 12) hour = 0;
-    d.setHours(hour, min, 0, 0);
-    return d;
-  }
-
-  for (const eventKey in groupedByEvent) {
-    const event = groupedByEvent[eventKey];
-    if (!event.eventStartDate) continue;
-
-    const baseDate = new Date(event.eventStartDate);
-    if (isNaN(baseDate)) continue;
-
-    const fullAddress = getAddressFromLocationName(locations, event.eventLocation);
-
-    event.shifts.forEach(shift => {
-      const timeStr = String(shift['Shift Display'] || '');
-      const parts = timeStr.split('-');
-      if (parts.length !== 2) return;
-
-      const startDate = parseTimeOnDate(baseDate, parts[0]);
-      const endDate = parseTimeOnDate(baseDate, parts[1]);
-      if (!startDate || !endDate) return;
-
-      const summary = `Chevra Kadisha Shift - ${event.deceasedName || 'Volunteer'}`;
-      const description =
-        `Shift time: ${timeStr}\nLocation: ${event.eventLocation}\nAddress: ${fullAddress}`;
-
-      const icsBlob = buildIcsForShift(summary, description, fullAddress, startDate, endDate);
-      icsAttachments.push(icsBlob);
-    });
-  }
-
-  return icsAttachments;
-}

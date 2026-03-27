@@ -1,34 +1,25 @@
-
 /**
 * -----------------------------------------------------------------
 * _select_locations.js
 * Chevra Kadisha Admin Menu functions
 * -----------------------------------------------------------------
-* _selection_locations.js
-Version: 1.0.7 * Last updated: 2025-11-27
+* Version: 1.1.0 * Last updated: 2026-03-26
  * 
- * CHANGELOG v1.0.7:
- *   - Initial implementation of Select Locations.
+ * CHANGELOG v1.1.0:
+ *   - Converted to vertical format: Col A=keys (Mortuary Name, Street Address,..., Line 30), Col B+=locations.
  * -----------------------------------------------------------------
  */
 
 /**
- * Returns all mortuary location records from the Locations sheet.
- * Expected headers: Mortuary Name, Street Address, City, State, Zip, Phone, Map URL
+ * Returns all mortuary location records from the Locations sheet (vertical format).
+ * Expected: Row 1 headers ["Key", "Crist Mortuary", "Greenwood & Myers", ...]
+ * Col A keys: Mortuary Name, Street Address, City, State, Zip, Phone, Map URL, Notes, Line 1-30
  *
- * @param {Object} sheetInputs - Configuration object containing SPREADSHEET_ID and LOCATIONS_SHEET.
+ * @param {Object} sheetInputs - Config with SPREADSHEET_ID, LOCATIONS_SHEET.
  * @returns {Array<Object>} Array of location objects.
  */
 function getLocations(sheetInputs) {
   Logger.log("Getting Locations from sheet: " + sheetInputs.LOCATIONS_SHEET);
-
-  function getSafeValue(row, idx, header) {
-    if (idx.hasOwnProperty(header)) {
-      return row[idx[header]];
-    } else {
-      return '';
-    }
-  }
 
   try {
     const ss = getSpreadsheet_(sheetInputs.SPREADSHEET_ID);
@@ -41,36 +32,41 @@ function getLocations(sheetInputs) {
       return [];
     }
 
-    const headers = data[0];
-
-    // Map header names to indices
-    var idx = {};
-    headers.forEach(function(h, i) { idx[h] = i; });
+    const headers = data[0]; // ["Key", "Crist Mortuary", "Greenwood & Myers", ...]
+    const locationNames = headers.slice(1); // Location names (Col B+)
 
     var locations = [];
 
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
+    // For each location column (Col B+)
+    for (let col = 1; col < headers.length; col++) {
+      const locName = headers[col].toString().trim();
+      if (!locName) continue;
 
-      // Skip completely blank rows
-      if (row.join('').trim() === '') continue;
+      const location = { name: locName };
 
-      const loc = {
-        name:        getSafeValue(row, idx, 'Mortuary Name'),
-        street:      getSafeValue(row, idx, 'Street Address'),
-        city:        getSafeValue(row, idx, 'City'),
-        state:       getSafeValue(row, idx, 'State'),
-        zip:         getSafeValue(row, idx, 'Zip'),
-        phone:       getSafeValue(row, idx, 'Phone'),
-        mapUrl:      getSafeValue(row, idx, 'Map URL'),
-        notes:       getSafeValue(row, idx, 'Notes'),
-        rowIndex:    i + 1 // 1-based row index in the sheet
-      };
+      // For each key row (Row 1+: Mortuary Name, Street Address, etc.)
+      for (let row = 1; row < data.length; row++) {
+        const keyName = data[row][0]?.toString().trim(); // Col A
+        if (!keyName) continue;
 
-      locations.push(loc);
+        const value = data[row][col] || ''; // Current location column
+        const propName = keyName.toLowerCase().replace(/ /g, ''); // 'Street Address' -> 'streetaddress', 'Line 1' -> 'line1'
+
+        location[propName] = value;
+      }
+
+      location.rowIndex = col + 1; // 1-based column index
+
+      // Dynamic logging for all properties
+      Logger.log('Location "%s" (col %s):', locName, location.rowIndex);
+      Object.keys(location).forEach(prop => {
+        Logger.log('  %s: %s', prop, location[prop]);
+      });
+
+      locations.push(location);
     }
 
-    // Logger.log("Found " + locations.length + " locations.");
+    Logger.log("Found " + locations.length + " locations.");
     return locations;
 
   } catch (e) {
@@ -79,29 +75,29 @@ function getLocations(sheetInputs) {
   }
 }
 
-
 /**
- * Looks up the confidential physical address based on the location name (e.g., 'Site A').
- * This function retrieves the secret address stored in ADDRESS_CONFIG.
- * @param {string} locationName The short name (e.g., 'Site A' or 'Site B').
- * @returns {string} The full physical address or a helpful message.
- * @private
+ * Looks up full address by location name from vertical locations array.
+ * @param {Array<Object>} locations - From getLocations().
+ * @param {string} locationName - e.g., "Crist Mortuary".
+ * @returns {string} Formatted address or locationName if not found.
  */
-/*
-* Function to find a location by name in an array of location objects 
-* and return the full address as a concatenated string.
-*/
 function getAddressFromLocationName(locations, locationName) {        
-  // 1. Find the location object in the array where location.name matches locationName.
   const foundLocation = locations.find(location => location.name === locationName);
-
-  // 2. If a matching location object is found, construct and return the full address string.
-  if (foundLocation) {
-    // Access properties directly and concatenate: "Street, City, State Zip"
-    return `${foundLocation.street}, ${foundLocation.city}, ${foundLocation.state} ${foundLocation.zip}`; 
+  
+  if (!foundLocation) {
+    Logger.log(`Location "${locationName}" not found.`);
+    return locationName;
   }
 
-  // 3. If the location is not configured (e.g. 'Virtual Shift', 'Other'), return the original location name.
-  return locationName;
-}      
+  // Safe concatenation - convert to string first, filter non-empty
+  const addrParts = [
+    String(foundLocation.streetaddress || ''),
+    String(foundLocation.city || ''),
+    String(foundLocation.state || ''),
+    String(foundLocation.zip || '')
+  ].filter(part => part.trim().length > 0);
+
+  const address = addrParts.join(', ');
+  return address || locationName;
+}
 

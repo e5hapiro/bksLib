@@ -5,12 +5,14 @@
 * QA mode utilized to debug the library
 * -----------------------------------------------------------------
 * _common_functions.js
-Version: 1.0.7 * Last updated: 2026-03-23
+Version: 1.0.8 * Last updated: 2026-03-26
  * 
- * CHANGELOG v1.0.7:
- *   - Added Decedents
  * CHANGELOG v1.0.6:
  *   - Fixed bug in usage of DEBUG
+ * CHANGELOG v1.0.7:
+ *   - Added Decedents
+ * CHANGELOG v1.0.8:
+ *   - Added Locations and Emails
  *
  * Utility functions for Google Apps Script (suitable for Google Forms/Sheets integrations)
  * -----------------------------------------------------------------
@@ -21,11 +23,13 @@ Version: 1.0.7 * Last updated: 2026-03-23
  */
 function QA_bootstrap() {
 
-  //try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
+  try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
   //try { QA_archiveUpdates(QA_configProperties()); Logger.log('QA_archiveUpdates: done'); } catch (e) { Logger.log('QA_archiveUpdates error: ' + e.message); }
 
+  //try { QA_getEmails(QA_configProperties()); Logger.log('QA_getEmails: done'); } catch (e) { Logger.log('QA_getEmails error: ' + e.message); }
+  // try { QA_getLocations(QA_configProperties()); Logger.log('QA_getLocations: done'); } catch (e) { Logger.log('QA_getLocations error: ' + e.message); }
   //try { QA_getDecedents(QA_configProperties()); Logger.log('QA_getDecedents: done'); } catch (e) { Logger.log('QA_getDecedents error: ' + e.message); }
-  try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
+  //try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
     
   //try { QA_triggerVolunteerShiftRemoval(QA_configProperties()); Logger.log('QA_triggerVolunteerShiftRemoval: done'); } catch (e) { Logger.log('QA_triggerVolunteerShiftRemoval error: ' + e.message); }
 
@@ -56,8 +60,16 @@ function QA_getShifts(sheetInputs){
 
 }
 
+function QA_getEmails(sheetInputs){
+  getEmails(sheetInputs);
+}
+
 function QA_getDecedents(sheetInputs){
   getDecedents(sheetInputs);
+}
+
+function QA_getLocations(sheetInputs){
+  getLocations(sheetInputs);
 }
 
 

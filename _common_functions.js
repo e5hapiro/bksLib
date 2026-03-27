@@ -29,7 +29,7 @@
  */
 
 function getWebAppUrl() {
-  const webAppUrl = "https://script.google.com/macros/s/AKfycbz4nN5jRH6apjOaONCP2DIWyuBhQbidxhYiRtoAtH3na1N98V8U6VJ8wNOytZMFpGgh/exec"; 
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbyY2MIgCuV3Dwl12VSTrH0o_srgwpsCRAymHfMXP5iqdcfUEoytZzimNpNDXQKdz1tO/exec"; 
   return webAppUrl
 }
 
@@ -54,6 +54,7 @@ function getSheetInputs() {
     GUESTS_SHEET: 'Guests',
     MEMBERS_SHEET: 'Members',
     LOCATIONS_SHEET: 'Locations',
+    EMAILS_SHEET: 'Emails',
     EVENT_MAP: 'Event Map',
     ARCHIVE_EVENT_MAP: 'Archive Event Map',
     ARCHIVE_HISTORICAL: 'Historical Archive',
