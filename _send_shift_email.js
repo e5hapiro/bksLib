@@ -4,11 +4,13 @@
  * Chevra Kadisha Shift Email sender
  * -----------------------------------------------------------------
  * _send_shift_email.js
- * Version: 1.0.0
- * Last updated: 2026-03-26
+ * Version: 1.0.1
+ * Last updated: 2026-04-08
  * 
  * CHANGELOG v1.0.0:
  *   - Initial implementation of Send Shift Email.
+ * CHANGELOG v1.0.0:
+ *   - Shift confirmation removal and addition notification template names were wrong
  * -----------------------------------------------------------------
  */
 
@@ -77,7 +79,7 @@ function sendShiftEmail(sheetInputs, volunteerData, shifts, actionType) {
 
   // Load template (Email_ID values from your sheet)
   const emailTemplates = getEmails(sheetInputs);
-  const templateKey = actionType === "Addition" ? "shift_notification_addition" : "shift_notification_removal";
+  const templateKey = actionType === "Addition" ? "shift_confirmation_addition" : "shift_confirmation_removal";
   const template = emailTemplates.find(t => t.key === templateKey);
   if (!template) {
     Logger.log(`Template "${templateKey}" not found.`);

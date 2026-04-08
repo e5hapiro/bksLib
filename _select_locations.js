@@ -61,10 +61,10 @@ function getLocations(sheetInputs) {
 
 
       // Dynamic logging for all properties
-      Logger.log('Location "%s" (col %s):', locName, location.rowIndex);
-      Object.keys(location).forEach(prop => {
-        Logger.log('  %s: %s', prop, location[prop]);
-      });
+      //Logger.log('Location "%s" (col %s):', locName, location.rowIndex);
+      //Object.keys(location).forEach(prop => {
+      //  Logger.log('  %s: %s', prop, location[prop]);
+      //});
 
 
       locations.push(location);

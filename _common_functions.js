@@ -29,7 +29,7 @@
  */
 
 function getWebAppUrl() {
-  const webAppUrl = "https://script.google.com/macros/s/AKfycby0hXG5Br92VVhLrETjWq6gpeGIhs1q3uGpTG0oFlnYsHRu_Axnm9yJjkDup7P_YLlk/exec"; 
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbznVRPlkqcP85RJP6pjsKLvrSP3s9P-PN1S0xdglXDdRYYT7zs97cu0rFlsno_PYBzx/exec"; 
   return webAppUrl
 }
 
