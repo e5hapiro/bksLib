@@ -3,10 +3,12 @@
 * _select_locations.js
 * Chevra Kadisha Admin Menu functions
 * -----------------------------------------------------------------
-* Version: 1.1.0 * Last updated: 2026-03-26
+* Version: 1.1.1 * Last updated: 2026-04-06
  * 
  * CHANGELOG v1.1.0:
  *   - Converted to vertical format: Col A=keys (Mortuary Name, Street Address,..., Line 30), Col B+=locations.
+ * CHANGELOG v1.1.1:
+ *   - Updated getAddressFromLocation eliminating trim of a null string
  * -----------------------------------------------------------------
  */
 
@@ -57,11 +59,13 @@ function getLocations(sheetInputs) {
 
       location.rowIndex = col + 1; // 1-based column index
 
+
       // Dynamic logging for all properties
       Logger.log('Location "%s" (col %s):', locName, location.rowIndex);
       Object.keys(location).forEach(prop => {
         Logger.log('  %s: %s', prop, location[prop]);
       });
+
 
       locations.push(location);
     }
@@ -82,22 +86,27 @@ function getLocations(sheetInputs) {
  * @returns {string} Formatted address or locationName if not found.
  */
 function getAddressFromLocationName(locations, locationName) {        
-  const foundLocation = locations.find(location => location.name === locationName);
+  const foundLocation = locations.find(loc => loc.name === locationName);
   
   if (!foundLocation) {
     Logger.log(`Location "${locationName}" not found.`);
     return locationName;
   }
 
-  // Safe concatenation - convert to string first, filter non-empty
-  const addrParts = [
-    String(foundLocation.streetaddress || ''),
-    String(foundLocation.city || ''),
-    String(foundLocation.state || ''),
-    String(foundLocation.zip || '')
-  ].filter(part => part.trim().length > 0);
+  // 1. Collect potential parts
+  const rawParts = [
+    foundLocation.streetaddress,
+    foundLocation.city,
+    foundLocation.state,
+    foundLocation.zip
+  ];
 
-  const address = addrParts.join(', ');
+  // 2. Filter, Trim, and Join
+  const address = rawParts
+    .filter(part => part != null && String(part).trim() !== "") // Remove null/undefined/empty
+    .map(part => String(part).trim())                          // Clean whitespace
+    .join(', ');
+
   return address || locationName;
 }
 

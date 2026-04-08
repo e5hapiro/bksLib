@@ -23,13 +23,13 @@ Version: 1.0.8 * Last updated: 2026-03-26
  */
 function QA_bootstrap() {
 
-  try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
+  //try { QA_triggerUpdates(QA_configProperties()); Logger.log('QA_triggerUpdates: done'); } catch (e) { Logger.log('QA_triggerUpdates error: ' + e.message); }
   //try { QA_archiveUpdates(QA_configProperties()); Logger.log('QA_archiveUpdates: done'); } catch (e) { Logger.log('QA_archiveUpdates error: ' + e.message); }
 
   //try { QA_getEmails(QA_configProperties()); Logger.log('QA_getEmails: done'); } catch (e) { Logger.log('QA_getEmails error: ' + e.message); }
-  // try { QA_getLocations(QA_configProperties()); Logger.log('QA_getLocations: done'); } catch (e) { Logger.log('QA_getLocations error: ' + e.message); }
+  //try { QA_getLocations(QA_configProperties()); Logger.log('QA_getLocations: done'); } catch (e) { Logger.log('QA_getLocations error: ' + e.message); }
   //try { QA_getDecedents(QA_configProperties()); Logger.log('QA_getDecedents: done'); } catch (e) { Logger.log('QA_getDecedents error: ' + e.message); }
-  //try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
+  try { QA_getShifts(QA_configProperties()); Logger.log('QA_getShifts: done'); } catch (e) { Logger.log('QA_getShifts error: ' + e.message); }
     
   //try { QA_triggerVolunteerShiftRemoval(QA_configProperties()); Logger.log('QA_triggerVolunteerShiftRemoval: done'); } catch (e) { Logger.log('QA_triggerVolunteerShiftRemoval error: ' + e.message); }
 
@@ -51,8 +51,8 @@ function QA_archiveUpdates(sheetInputs) {
 }
 
 function QA_getShifts(sheetInputs){
-  const volunteerToken = "39e26527-eff4-4b6e-9e2c-1031a187d7fb";
-  const isMember = false;
+  const volunteerToken = "70614216-b32f-4ae9-a363-b425cca6f123";
+  const isMember = true;
   const shiftFlags =1;
   const nameOnly = false;
 

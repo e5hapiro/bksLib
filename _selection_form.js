@@ -4,8 +4,8 @@
  * Chevra Kadisha Selection Form Handler
  * -----------------------------------------------------------------
  * _selection_form.js
- * Version: 1.0.15
- * Last updated: 2026-03-26
+ * Version: 1.0.16
+ * Last updated: 2026-04-08
  * 
  * CHANGELOG v1.0.3:
  *   - Initial implementation of Selection Form.
@@ -30,6 +30,8 @@
  *   - isMember logic is now passed down all of the way
  *   v1.0.15
  *   - Returns guest shifts for all days during business hours
+ *   v1.0.16
+ *   - Puts back the code so that available shots do not return already selected slots
  * -----------------------------------------------------------------
  */
 
@@ -629,9 +631,31 @@ function getAvailableShiftsForEvent(sheetInputs, eventToken, isMember) {
     eventShifts.push(shiftObj);
   }
 
-  console.log("getAvailableShiftsForEvent END, found shifts:", eventShifts.length);
-  Logger.log("getAvailableShiftsForEvent END, found %s shifts", eventShifts.length);
-  return eventShifts;
+  // Find claimed shifts
+  const volunteerData = volunteerShiftsSheet.getDataRange().getValues();
+
+  // First row is reserved in the view, so need to start with row 2 or 1 in Javascript
+  const volunteerHeaders = volunteerData[1];
+  const volunteerShiftIdIdx = volunteerHeaders.indexOf("Shift ID");
+
+  const claimedShiftIds = new Set();
+  for (let i = 1; i < volunteerData.length; i++) {
+    const claimedId = volunteerData[i][volunteerShiftIdIdx];
+    if (claimedId) claimedShiftIds.add(claimedId);
+  }
+
+  let availableShifts;
+  if (eventShifts.length === 0) {
+    availableShifts = [];
+  } else {
+    availableShifts = eventShifts.filter(shift => !claimedShiftIds.has(shift["Shift ID"]));
+  }
+
+  console.log("getAvailableShiftsForEvent END, found shifts:", availableShifts.length);
+  Logger.log("getAvailableShiftsForEvent END, found %s shifts", availableShifts.length);
+
+  return availableShifts;
+
 }
 
 

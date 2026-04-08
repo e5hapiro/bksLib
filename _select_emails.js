@@ -57,6 +57,7 @@ function getEmails(sheetInputs) {
 
       email.rowIndex = col + 1; // 1-based column index for template
 
+/*
       // Debug logging (fixed variable names)
       Logger.log('key: %s', email.key);
       Logger.log('subject: %s', email.subject);
@@ -71,6 +72,7 @@ function getEmails(sheetInputs) {
       Logger.log('line9: %s', email.line9);
       Logger.log('line10: %s', email.line10);
       Logger.log('rowIndex: %s', email.rowIndex);
+*/
 
       emails.push(email);
     }
